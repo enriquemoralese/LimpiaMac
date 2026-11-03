@@ -187,7 +187,7 @@ public struct Escaner: Sendable {
         if reglas.esIntocable(url) || Self.esDataless(url) { return }
         archivos.append(Archivo(
             url: url,
-            bytes: Int64(v.totalFileAllocatedSize ?? 0),
+            bytes: EspacioAPFS.liberable(url.path, enDisco: Int64(v.totalFileAllocatedSize ?? 0)),
             tamano: Int64(v.fileSize ?? 0),
             modificado: v.contentModificationDate ?? ahora,
             creado: v.creationDate ?? ahora,
@@ -239,13 +239,17 @@ public struct Escaner: Sendable {
     }
 
     func ultimaApertura(_ a: Archivo) -> (Date, TipoFecha) {
-        if let item = MDItemCreateWithURL(kCFAllocatorDefault, a.url as CFURL),
-           let fecha = MDItemCopyAttribute(item, kMDItemLastUsedDate) as? Date,
+        let item = MDItemCreateWithURL(kCFAllocatorDefault, a.url as CFURL)
+        if let item, let fecha = MDItemCopyAttribute(item, kMDItemLastUsedDate) as? Date,
            // Sin registro real, Spotlight devuelve la fecha de modificación o creación; esa no cuenta como apertura.
            abs(fecha.timeIntervalSince(a.modificado)) > 2, abs(fecha.timeIntervalSince(a.creado)) > 2 {
             return (fecha, .apertura)
         }
-        return (max(a.modificado, a.creado), .estimada)
+        // Sin apertura registrada se toma la fecha más reciente que se conozca, para no marcar como viejo
+        // algo que llegó hace poco: la fecha en que se agregó a su carpeta (por ejemplo, cuando se descargó)
+        // cuenta igual que la de modificación o creación.
+        let agregado = item.flatMap { MDItemCopyAttribute($0, kMDItemDateAdded) as? Date } ?? .distantPast
+        return (max(a.modificado, a.creado, agregado), .estimada)
     }
 
     // MARK: - Proyectos dormidos
@@ -305,7 +309,8 @@ public struct Escaner: Sendable {
                 let ordenados = iguales.sorted { $0.creado < $1.creado }
                 let original = ordenados[0]
                 let rutaOriginal = original.url.path.replacingOccurrences(of: reglas.inicio.path, with: "~")
-                for copia in ordenados.dropFirst() {
+                // Una copia clonada en APFS comparte bloques con el original: borrarla no libera espacio.
+                for copia in ordenados.dropFirst() where copia.bytes >= config.minimoDuplicados {
                     hallazgos.append(Hallazgo(url: copia.url, categoria: .duplicados, bytes: copia.bytes, fecha: copia.creado,
                                               tipoFecha: .modificacion, sensible: copia.sensible,
                                               nota: "Igual a \(rutaOriginal)"))
@@ -324,13 +329,16 @@ public struct Escaner: Sendable {
             errores.append("\(url.path): no se pudo leer")
             return 0
         }
-        guard v.isDirectory == true else { return Int64(v.totalFileAllocatedSize ?? 0) }
+        guard v.isDirectory == true else {
+            return EspacioAPFS.liberable(url.path, enDisco: Int64(v.totalFileAllocatedSize ?? 0))
+        }
         let fallas = Fallas()
         let e = FileManager.default.enumerator(at: url, includingPropertiesForKeys: Array(claves), options: [],
                                                errorHandler: { u, error in fallas.agregar("\(u.path): \(error.localizedDescription)"); return true })
         var total: Int64 = 0
         while let u = e?.nextObject() as? URL {
-            total += Int64((try? u.resourceValues(forKeys: claves))?.totalFileAllocatedSize ?? 0)
+            let enDisco = Int64((try? u.resourceValues(forKeys: claves))?.totalFileAllocatedSize ?? 0)
+            total += enDisco > 0 ? EspacioAPFS.liberable(u.path, enDisco: enDisco) : 0
         }
         errores += fallas.lista
         return total
