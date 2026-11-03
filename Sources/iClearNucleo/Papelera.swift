@@ -1,10 +1,20 @@
 import Foundation
 
-public struct Movimiento: Codable, Sendable {
+public struct Movimiento: Codable, Sendable, Hashable, Identifiable {
     public let original: String
     public let enPapelera: String
     public let bytes: Int64
     public let fecha: Date
+
+    public init(original: String, enPapelera: String, bytes: Int64, fecha: Date) {
+        self.original = original
+        self.enPapelera = enPapelera
+        self.bytes = bytes
+        self.fecha = fecha
+    }
+
+    public var id: String { enPapelera + "|" + original }
+    public var nombre: String { (original as NSString).lastPathComponent }
 }
 
 public struct ResultadoLimpieza: Sendable {
@@ -81,18 +91,52 @@ public enum Papelera {
     }
 
     static func anotar(_ movidos: [Movimiento], en historial: URL) throws {
+        try guardar(try leerHistorial(historial) + movidos, en: historial)
+    }
+
+    public static func leerHistorial(_ historial: URL = historialPorDefecto) throws -> [Movimiento] {
+        guard FileManager.default.fileExists(atPath: historial.path) else { return [] }
+        let decodificador = JSONDecoder()
+        decodificador.dateDecodingStrategy = .iso8601
+        return try decodificador.decode([Movimiento].self, from: Data(contentsOf: historial))
+    }
+
+    static func guardar(_ movimientos: [Movimiento], en historial: URL) throws {
         try FileManager.default.createDirectory(at: historial.deletingLastPathComponent(), withIntermediateDirectories: true)
         let codificador = JSONEncoder()
         codificador.dateEncodingStrategy = .iso8601
         codificador.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        let decodificador = JSONDecoder()
-        decodificador.dateDecodingStrategy = .iso8601
-        var todos: [Movimiento] = []
-        if FileManager.default.fileExists(atPath: historial.path) {
-            todos = try decodificador.decode([Movimiento].self, from: Data(contentsOf: historial))
+        try codificador.encode(movimientos).write(to: historial, options: .atomic)
+    }
+
+    /// Lo que iClear movió y todavía está en la Papelera, lo más reciente primero.
+    public static func restaurables(_ historial: URL = historialPorDefecto) throws -> [Movimiento] {
+        try leerHistorial(historial)
+            .filter { !$0.enPapelera.isEmpty && FileManager.default.fileExists(atPath: $0.enPapelera) }
+            .sorted { $0.fecha > $1.fecha }
+    }
+
+    public enum ErrorRestaurar: LocalizedError {
+        case yaNoEstaEnLaPapelera, yaExisteElOriginal(String)
+        public var errorDescription: String? {
+            switch self {
+            case .yaNoEstaEnLaPapelera: "Ya no está en la Papelera."
+            case .yaExisteElOriginal(let ruta): "Ya hay algo con ese nombre en \(ruta)."
+            }
         }
-        todos += movidos
-        try codificador.encode(todos).write(to: historial, options: .atomic)
+    }
+
+    /// Regresa un elemento a su lugar original y lo quita del historial. Nunca sobrescribe.
+    public static func restaurar(_ m: Movimiento, historial: URL = historialPorDefecto) throws {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: m.enPapelera) else { throw ErrorRestaurar.yaNoEstaEnLaPapelera }
+        guard !fm.fileExists(atPath: m.original) else {
+            throw ErrorRestaurar.yaExisteElOriginal((m.original as NSString).deletingLastPathComponent)
+        }
+        let destino = URL(fileURLWithPath: m.original)
+        try fm.createDirectory(at: destino.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try fm.moveItem(at: URL(fileURLWithPath: m.enPapelera), to: destino)
+        try guardar(try leerHistorial(historial).filter { $0 != m }, en: historial)
     }
 
     /// `nil` si no se puede saber (la carpeta de prueba no existe). `false` si macOS niega la lectura.

@@ -18,6 +18,9 @@ import SwiftUI
                     }
                 }
                 Section {
+                    FilaLateral(titulo: "Movido recientemente", simbolo: "arrow.uturn.backward.circle",
+                                valor: estado.recientes.isEmpty ? nil : "\(estado.recientes.count)")
+                        .tag(Seccion.recientes)
                     FilaLateral(titulo: "Papelera", simbolo: "trash",
                                 valor: estado.papeleraBytes.map(tamano))
                         .tag(Seccion.papelera)
@@ -29,6 +32,7 @@ import SwiftUI
                 switch estado.seccion ?? .resumen {
                 case .resumen: ResumenView()
                 case .categoria(let c): TablaView(categoria: c)
+                case .recientes: RecientesView()
                 case .papelera: PapeleraView()
                 }
             }

@@ -5,6 +5,7 @@ import Observation
 enum Seccion: Hashable {
     case resumen
     case categoria(Categoria)
+    case recientes
     case papelera
 }
 
@@ -18,6 +19,8 @@ final class Estado {
     /// Viven aquí para que el panel de vista previa, que macOS dibuja aparte, vea el cambio.
     var filas: Set<String> = []
     var confirmando = false
+    /// Lo que iClear movió y todavía se puede restaurar.
+    var recientes: [Movimiento] = []
     var escaneando = false
     var escaneado = false
     var progreso = ""
@@ -37,6 +40,7 @@ final class Estado {
         errores = Ajustes.migrarNombreAnterior()
         accesoCompleto = Papelera.tieneAccesoCompleto(inicio: inicio)
         medirPapelera()
+        cargarRecientes()
         let inicio = inicio
         Task {
             enUsoFL = await Task.detached { FLStudio.carpetasEnUso(inicio: inicio).sorted { $0.path < $1.path } }.value
@@ -112,7 +116,30 @@ final class Estado {
             seleccion = seleccion.intersection(hallazgos.map(\.id))
             ultimaLimpieza = r
             medirPapelera()
+            cargarRecientes()
         }
+    }
+
+    func cargarRecientes() {
+        Task {
+            let r = await Task.detached { Result { try Papelera.restaurables() } }.value
+            switch r {
+            case .success(let lista): recientes = lista
+            case .failure(let error): errores.append("No se pudo leer el historial: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// Devuelve los errores, uno por elemento que no se pudo restaurar.
+    func restaurar(_ movimientos: [Movimiento]) async -> [String] {
+        let errores = await Task.detached { () -> [String] in
+            movimientos.compactMap { m in
+                do { try Papelera.restaurar(m); return nil } catch { return "\(m.nombre): \(error.localizedDescription)" }
+            }
+        }.value
+        cargarRecientes()
+        medirPapelera()
+        return errores
     }
 
     func medirPapelera() {
@@ -133,6 +160,7 @@ final class Estado {
         let papelera = inicio.appendingPathComponent(".Trash")
         let r = await Task.detached { Papelera.vaciar(papelera) }.value
         medirPapelera()
+        cargarRecientes()
         return r
     }
 }
