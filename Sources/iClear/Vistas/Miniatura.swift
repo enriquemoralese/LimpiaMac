@@ -76,6 +76,7 @@ import UniformTypeIdentifiers
 @MainActor struct DetalleView: View {
     let estado: Estado
     let vistaRapida: (URL) -> Void
+    @State private var revisarDeNuevo = 0
 
     var body: some View {
         // Se lee del estado dentro del body para que el panel se redibuje con cada clic.
@@ -130,6 +131,19 @@ import UniformTypeIdentifiers
                         }
                     }
                     .font(.callout)
+
+                    let _ = revisarDeNuevo
+                    if let app = estado.abiertas([h]).first {
+                        HStack {
+                            Label("Está abierta. Ciérrala antes de moverla.", systemImage: "exclamationmark.triangle.fill")
+                                .font(.callout).foregroundStyle(.orange)
+                            Spacer()
+                            Button("Cerrar") {
+                                app.terminate()
+                                Task { try? await Task.sleep(for: .seconds(1.5)); revisarDeNuevo += 1 }
+                            }
+                        }
+                    }
 
                     if !h.extras.isEmpty {
                         DisclosureGroup("También se moverán \(h.extras.count) restos") {

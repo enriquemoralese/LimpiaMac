@@ -120,6 +120,36 @@ final class Estado {
         }
     }
 
+    /// Finder sí puede mover apps del sistema: pide la contraseña de la Mac. Queda anotado como lo demás.
+    func moverConFinder(_ pendientes: [Pendiente]) {
+        let urls = pendientes.map(\.url)
+        let bytes = Dictionary(pendientes.map { ($0.url, $0.bytes) }, uniquingKeysWith: max)
+        NSWorkspace.shared.recycle(urls) { movidas, error in
+            Task { @MainActor in
+                var r = ResultadoLimpieza()
+                r.movidos = movidas.map { Movimiento(original: $0.key.path, enPapelera: $0.value.path, bytes: bytes[$0.key] ?? 0, fecha: Date()) }
+                if let error, movidas.count < urls.count { r.errores.append(error.localizedDescription) }
+                do { try Papelera.anotarMovidos(r.movidos) } catch {
+                    r.errores.append("No se pudo guardar el historial: \(error.localizedDescription)")
+                }
+                let rutas = r.movidos.map(\.original)
+                self.hallazgos.removeAll { h in rutas.contains { h.url.path == $0 || h.url.path.hasPrefix($0 + "/") } }
+                self.seleccion = self.seleccion.intersection(self.hallazgos.map(\.id))
+                self.ultimaLimpieza = r
+                self.medirPapelera()
+                self.cargarRecientes()
+            }
+        }
+    }
+
+    /// Apps de la lista que están abiertas ahora mismo.
+    func abiertas(_ lista: [Hallazgo]) -> [NSRunningApplication] {
+        let rutas = Set(lista.filter { $0.categoria == .aplicaciones }.map { $0.url.standardizedFileURL.path })
+        return NSWorkspace.shared.runningApplications.filter { app in
+            app.bundleURL.map { rutas.contains($0.standardizedFileURL.path) } ?? false
+        }
+    }
+
     func cargarRecientes() {
         Task {
             let r = await Task.detached { Result { try Papelera.restaurables() } }.value

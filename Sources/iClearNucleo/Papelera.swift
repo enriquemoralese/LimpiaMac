@@ -20,7 +20,16 @@ public struct Movimiento: Codable, Sendable, Hashable, Identifiable {
 public struct ResultadoLimpieza: Sendable {
     public var movidos: [Movimiento] = []
     public var errores: [String] = []
+    /// Lo que macOS no dejó mover por falta de permiso (apps del sistema). Finder sí puede, pidiendo la contraseña.
+    public var sinPermiso: [Pendiente] = []
     public var bytes: Int64 { movidos.reduce(0) { $0 + $1.bytes } }
+
+    public init() {}
+}
+
+public struct Pendiente: Sendable, Hashable {
+    public let url: URL
+    public let bytes: Int64
 }
 
 /// Lo único que modifica el disco. Siempre manda a la Papelera, nunca borra de forma definitiva.
@@ -72,6 +81,7 @@ public enum Papelera {
                                                         bytes: i == 0 ? h.bytes : 0, fecha: Date()))
                 } catch {
                     resultado.errores.append("\(url.path): \(error.localizedDescription)")
+                    if esFaltaDePermiso(error) { resultado.sinPermiso.append(Pendiente(url: url, bytes: i == 0 ? h.bytes : 0)) }
                     if i == 0 { break }
                 }
             }
@@ -88,6 +98,18 @@ public enum Papelera {
         var destino: NSURL?
         try FileManager.default.trashItem(at: url, resultingItemURL: &destino)
         return destino as URL?
+    }
+
+    static func esFaltaDePermiso(_ error: Error) -> Bool {
+        let ns = error as NSError
+        if ns.domain == NSCocoaErrorDomain && ns.code == NSFileWriteNoPermissionError { return true }
+        let posix = (ns.domain == NSPOSIXErrorDomain ? ns : ns.userInfo[NSUnderlyingErrorKey] as? NSError)
+        return posix?.domain == NSPOSIXErrorDomain && [Int(EACCES), Int(EPERM)].contains(posix?.code ?? 0)
+    }
+
+    /// Para anotar lo que movió Finder (por ejemplo, apps del sistema con contraseña).
+    public static func anotarMovidos(_ movidos: [Movimiento], historial: URL = historialPorDefecto) throws {
+        try anotar(movidos, en: historial)
     }
 
     static func anotar(_ movidos: [Movimiento], en historial: URL) throws {

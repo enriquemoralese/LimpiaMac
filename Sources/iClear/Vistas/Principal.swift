@@ -46,7 +46,12 @@ import SwiftUI
             BienvenidaView().interactiveDismissDisabled()
         }
         .alert("Listo", isPresented: Binding(get: { estado.ultimaLimpieza != nil }, set: { if !$0 { estado.ultimaLimpieza = nil } })) {
-            Button("Aceptar") { estado.ultimaLimpieza = nil }
+            if let pendientes = estado.ultimaLimpieza?.sinPermiso, !pendientes.isEmpty {
+                Button("Mover con Finder") { estado.moverConFinder(pendientes) }
+                Button("Ahora no", role: .cancel) { estado.ultimaLimpieza = nil }
+            } else {
+                Button("Aceptar") { estado.ultimaLimpieza = nil }
+            }
         } message: {
             if let r = estado.ultimaLimpieza {
                 Text(mensaje(r))
@@ -63,6 +68,9 @@ import SwiftUI
         var texto = "Se movieron \(r.movidos.count) elementos a la Papelera (\(tamano(r.bytes))). Puedes recuperarlos desde ahí."
         if !r.errores.isEmpty {
             texto += "\n\n\(r.errores.count) no se pudieron mover:\n" + r.errores.prefix(5).joined(separator: "\n")
+        }
+        if !r.sinPermiso.isEmpty {
+            texto += "\n\n\(r.sinPermiso.count) son del sistema y necesitan tu contraseña. Finder puede moverlos."
         }
         return texto
     }

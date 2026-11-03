@@ -57,3 +57,21 @@ final class RestaurarTests: XCTestCase {
         XCTAssertThrowsError(try Papelera.restaurar(m, historial: historial))
     }
 }
+
+final class PermisoTests: XCTestCase {
+    func testSeparaLoQueNoSePudoMoverPorPermiso() throws {
+        let casa = FileManager.default.temporaryDirectory.appendingPathComponent("iClearPermiso-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: casa, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: casa) }
+        let app = Hallazgo(url: URL(fileURLWithPath: "/Applications/Ficticia.app"), categoria: .aplicaciones, bytes: 900,
+                           fecha: Date(), tipoFecha: .apertura, sensible: false)
+        let roto = Hallazgo(url: casa.appendingPathComponent("roto.mov"), categoria: .grandes, bytes: 5,
+                            fecha: Date(), tipoFecha: .estimada, sensible: false)
+        let r = Papelera.mover([app, roto], reglas: Reglas(inicio: casa), historial: casa.appendingPathComponent("h.json")) { url in
+            if url.pathExtension == "app" { throw CocoaError(.fileWriteNoPermission) }
+            throw CocoaError(.fileNoSuchFile)
+        }
+        XCTAssertEqual(r.errores.count, 2)
+        XCTAssertEqual(r.sinPermiso, [Pendiente(url: app.url, bytes: 900)])
+    }
+}
