@@ -7,24 +7,18 @@ public struct Reglas: Sendable {
     /// Rutas absolutas en minúsculas (APFS no distingue mayúsculas).
     let intocables: [String]
 
-    /// Relativas a la carpeta de inicio.
+    /// Protecciones que sirven a cualquier persona. Relativas a la carpeta de inicio.
+    /// Las carpetas de cada quien se agregan en Ajustes, no aquí.
     public static let intocablesFijos = [
-        "Downloads/Useful_docs",
-        "Downloads/beats",
+        ".ssh",
+        ".gnupg",
+        ".config",
         "Documents/Image-Line",
         "Library/Application Support/Image-Line",
-        "LexColab",
-        "Documents/Obsidian Vault",
-        "eco_backup.dump",
-        "venv-eco",
-        ".ssh",
-        ".config",
-        ".gnupg",
+        "Music/Audio Music Apps",
     ]
-    /// Carpetas de trabajo en la raíz de inicio (Quaio-Finance, quaio-eco-agent...).
-    static let prefijosIntocables = ["quaio", "lexcolab"]
-    /// FL Studio y beats: cualquier carpeta cuyo nombre los contenga.
-    static let fragmentosIntocables = ["beat", "image-line", "fl studio", "fl cloud"]
+    /// FL Studio: cualquier carpeta o app cuyo nombre lo contenga.
+    static let fragmentosIntocables = ["image-line", "fl studio", "fl cloud"]
     static let extensionesIntocables: Set<String> = ["flp", "fst"]
 
     public init(inicio: URL, extras: [URL] = []) {
@@ -55,9 +49,6 @@ public struct Reglas: Sendable {
             return Self.fragmentosIntocables.contains { nombre.contains($0) }
         }
         let componentes = ruta.dropFirst(base.count + 1).split(separator: "/").map(String.init)
-        if let primero = componentes.first, Self.prefijosIntocables.contains(where: { primero.hasPrefix($0) }) {
-            return true
-        }
         return componentes.contains { c in Self.fragmentosIntocables.contains { c.contains($0) } }
     }
 

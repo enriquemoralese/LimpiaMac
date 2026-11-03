@@ -36,7 +36,12 @@ final class EscanerTests: XCTestCase {
         c.minimoDuplicados = 100_000
         c.minimoBasura = 100_000
         c.carpetasApps = []
-        return try Escaner(reglas: Reglas(inicio: casa), config: c).escanear()
+        return try Escaner(reglas: reglas, config: c).escanear()
+    }
+
+    /// Carpetas que una persona protegería en Ajustes.
+    var reglas: Reglas {
+        Reglas(inicio: casa, extras: [casa.appendingPathComponent("Downloads/Importantes"), casa.appendingPathComponent("Trabajo")])
     }
 
     func rutas(_ r: ResultadoEscaneo, _ c: Categoria) -> Set<String> {
@@ -45,11 +50,11 @@ final class EscanerTests: XCTestCase {
 
     func testClasificacionCompleta() throws {
         // Protegidos
-        try crear("Downloads/Useful_docs/viejo.pdf", kb: 2000, fecha: hace3Anios)
-        try crear("Downloads/beats/loop.wav", kb: 4000, fecha: hace3Anios)
+        try crear("Downloads/Importantes/viejo.pdf", kb: 2000, fecha: hace3Anios)
+        try crear("Music/Audio Music Apps/loop.wav", kb: 4000, fecha: hace3Anios)
         try crear("Documents/Cancion/proyecto.flp", kb: 10, fecha: hace3Anios)
         try crear("Documents/Cancion/samples/voz.wav", kb: 4000, fecha: hace3Anios)
-        try crear("Quaio-Finance/datos.bin", kb: 4000, fecha: hace3Anios)
+        try crear("Trabajo/datos.bin", kb: 4000, fecha: hace3Anios)
         try crear("Library/Caches/com.apple.algo/cache.db", kb: 2000)
         // Candidatos
         try crear("Library/Caches/com.app.ejemplo/cache.db", kb: 2000)
@@ -66,7 +71,7 @@ final class EscanerTests: XCTestCase {
         XCTAssertEqual(r.errores, [])
 
         let todas = Set(r.hallazgos.map(\.url.path))
-        for protegida in ["Useful_docs", "beats", "Cancion", "Quaio-Finance", "com.apple.algo"] {
+        for protegida in ["Importantes", "Audio Music Apps", "Cancion", "Trabajo", "com.apple.algo"] {
             XCTAssertFalse(todas.contains { $0.contains(protegida) }, "No debe aparecer: \(protegida)")
         }
 
@@ -115,11 +120,11 @@ final class EscanerTests: XCTestCase {
     }
 
     func testMoverRechazaProtegidos() throws {
-        let url = try crear("Downloads/Useful_docs/importante.pdf", kb: 1)
+        let url = try crear("Downloads/Importantes/importante.pdf", kb: 1)
         let h = Hallazgo(url: url, categoria: .viejos, bytes: 1024, fecha: Date(), tipoFecha: .estimada, sensible: false)
         let historial = casa.appendingPathComponent("historial.json")
         var llamadas: [URL] = []
-        let r = Papelera.mover([h], reglas: Reglas(inicio: casa), historial: historial) { llamadas.append($0); return nil }
+        let r = Papelera.mover([h], reglas: reglas, historial: historial) { llamadas.append($0); return nil }
         XCTAssertEqual(llamadas, [])
         XCTAssertEqual(r.movidos.count, 0)
         XCTAssertEqual(r.errores.count, 1)

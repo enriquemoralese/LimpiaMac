@@ -3,6 +3,7 @@ import SwiftUI
 
 @MainActor struct Principal: View {
     @Environment(Estado.self) private var estado
+    @AppStorage(Ajustes.claveBienvenida) private var bienvenidaVista = false
 
     var body: some View {
         @Bindable var estado = estado
@@ -37,6 +38,9 @@ import SwiftUI
             }
         }
         .sheet(isPresented: $estado.confirmando) { ConfirmacionView() }
+        .sheet(isPresented: Binding(get: { !bienvenidaVista }, set: { if !$0 { bienvenidaVista = true } })) {
+            BienvenidaView().interactiveDismissDisabled()
+        }
         .alert("Listo", isPresented: Binding(get: { estado.ultimaLimpieza != nil }, set: { if !$0 { estado.ultimaLimpieza = nil } })) {
             Button("Aceptar") { estado.ultimaLimpieza = nil }
         } message: {

@@ -8,6 +8,7 @@ enum Ajustes {
     static let claveViejos = "mesesViejos"
     static let claveDormidos = "mesesDormidos"
     static let claveProtegidas = "protegidas"
+    static let claveBienvenida = "bienvenidaVista"
 
     static var configuracion: Configuracion {
         let d = UserDefaults.standard
@@ -55,10 +56,7 @@ enum Ajustes {
     @AppStorage(Ajustes.claveUmbral) private var umbralMB = 500
     @AppStorage(Ajustes.claveViejos) private var mesesViejos = 12
     @AppStorage(Ajustes.claveDormidos) private var mesesDormidos = 18
-    @AppStorage(Ajustes.claveProtegidas) private var protegidas = ""
     @Environment(Estado.self) private var estado
-
-    private var lista: [String] { protegidas.split(separator: "\n").map(String.init) }
 
     var body: some View {
         Form {
@@ -71,24 +69,13 @@ enum Ajustes {
                 ForEach(Reglas.intocablesFijos, id: \.self) { ruta in
                     Label("~/" + ruta, systemImage: "lock.fill").foregroundStyle(.secondary)
                 }
-                Label("Carpetas con proyectos .flp, FL Studio y beats", systemImage: "lock.fill").foregroundStyle(.secondary)
-                Label("Carpetas Quaio y LexColab", systemImage: "lock.fill").foregroundStyle(.secondary)
+                Label("Proyectos .flp y apps de FL Studio", systemImage: "lock.fill").foregroundStyle(.secondary)
                 ForEach(estado.enUsoFL, id: \.self) { url in
                     Label(url.path.replacingOccurrences(of: NSHomeDirectory(), with: "~"), systemImage: "waveform")
                         .foregroundStyle(.secondary)
                         .help("FL Studio usa samples de aquí")
                 }
-                ForEach(lista, id: \.self) { ruta in
-                    HStack {
-                        Label(ruta.replacingOccurrences(of: NSHomeDirectory(), with: "~"), systemImage: "lock")
-                        Spacer()
-                        Button("Quitar", role: .destructive) {
-                            protegidas = lista.filter { $0 != ruta }.joined(separator: "\n")
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-                Button("Agregar carpeta…", action: agregar)
+                CarpetasPropias()
             } header: {
                 Text("Carpetas protegidas")
             } footer: {
@@ -99,11 +86,33 @@ enum Ajustes {
         .formStyle(.grouped)
         .frame(width: 520, height: 560)
     }
+}
+
+/// Las carpetas y archivos que cada quien protege. Se usa en Ajustes y en la bienvenida.
+@MainActor struct CarpetasPropias: View {
+    @AppStorage(Ajustes.claveProtegidas) private var protegidas = ""
+
+    private var lista: [String] { protegidas.split(separator: "\n").map(String.init) }
+
+    var body: some View {
+        ForEach(lista, id: \.self) { ruta in
+            HStack {
+                Label(ruta.replacingOccurrences(of: NSHomeDirectory(), with: "~"), systemImage: "lock")
+                    .lineLimit(1).truncationMode(.middle)
+                Spacer()
+                Button("Quitar", role: .destructive) {
+                    protegidas = lista.filter { $0 != ruta }.joined(separator: "\n")
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+        Button("Agregar carpeta o archivo…", action: agregar)
+    }
 
     private func agregar() {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
-        panel.canChooseFiles = false
+        panel.canChooseFiles = true
         panel.allowsMultipleSelection = true
         panel.prompt = "Proteger"
         guard panel.runModal() == .OK else { return }
