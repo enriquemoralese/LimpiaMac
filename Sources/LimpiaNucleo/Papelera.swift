@@ -42,18 +42,28 @@ public enum Papelera {
     public static func mover(_ hallazgos: [Hallazgo], reglas: Reglas, historial: URL = historialPorDefecto,
                              aPapelera: (URL) throws -> URL? = alaPapelera) -> ResultadoLimpieza {
         var resultado = ResultadoLimpieza()
+        var movidas = Set<String>()
         for h in unicos(hallazgos) {
-            // Segunda revisión por si las reglas cambiaron entre el escaneo y la limpieza.
-            if reglas.esIntocable(h.url) {
-                resultado.errores.append("\(h.url.path): está protegida, no se movió")
-                continue
-            }
-            do {
-                let destino = try aPapelera(h.url)
-                resultado.movidos.append(Movimiento(original: h.url.path, enPapelera: destino?.path ?? "",
-                                                    bytes: h.bytes, fecha: Date()))
-            } catch {
-                resultado.errores.append("\(h.url.path): \(error.localizedDescription)")
+            // Primero la app (o el archivo); sus restos solo si ella sí se movió.
+            for (i, url) in ([h.url] + h.extras).enumerated() {
+                // Un resto pudo moverse ya en otra categoría (por ejemplo en Basura del sistema).
+                if movidas.contains(where: { url.path == $0 || url.path.hasPrefix($0 + "/") }) { continue }
+                if i > 0 && !FileManager.default.fileExists(atPath: url.path) { continue }
+                // Segunda revisión por si las reglas cambiaron entre el escaneo y la limpieza.
+                if reglas.esIntocable(url) {
+                    resultado.errores.append("\(url.path): está protegida, no se movió")
+                    if i == 0 { break } else { continue }
+                }
+                do {
+                    let destino = try aPapelera(url)
+                    movidas.insert(url.path)
+                    // El tamaño del hallazgo ya incluye sus restos: se anota completo en el primero.
+                    resultado.movidos.append(Movimiento(original: url.path, enPapelera: destino?.path ?? "",
+                                                        bytes: i == 0 ? h.bytes : 0, fecha: Date()))
+                } catch {
+                    resultado.errores.append("\(url.path): \(error.localizedDescription)")
+                    if i == 0 { break }
+                }
             }
         }
         if !resultado.movidos.isEmpty {

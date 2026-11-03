@@ -1,7 +1,7 @@
 import Foundation
 
 public enum Categoria: String, CaseIterable, Identifiable, Hashable, Sendable {
-    case basura, instaladores, grandes, viejos, dormidos, duplicados
+    case basura, instaladores, grandes, viejos, dormidos, duplicados, aplicaciones
 
     public var id: String { rawValue }
 
@@ -13,6 +13,7 @@ public enum Categoria: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .viejos: "Viejos o sin abrir"
         case .dormidos: "Proyectos dormidos"
         case .duplicados: "Duplicados"
+        case .aplicaciones: "Aplicaciones"
         }
     }
 
@@ -24,6 +25,7 @@ public enum Categoria: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .viejos: "Archivos que no se abren desde hace tiempo."
         case .dormidos: "Carpetas completas sin cambios desde hace mucho, como semestres o proyectos cerrados."
         case .duplicados: "Copias idénticas por contenido. Se conserva la más antigua."
+        case .aplicaciones: "Apps instaladas con sus restos en la Librería. Se mueven juntos a la Papelera."
         }
     }
 
@@ -35,6 +37,7 @@ public enum Categoria: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .viejos: "clock.arrow.circlepath"
         case .dormidos: "moon.zzz"
         case .duplicados: "doc.on.doc"
+        case .aplicaciones: "app.dashed"
         }
     }
 
@@ -66,8 +69,11 @@ public struct Hallazgo: Identifiable, Hashable, Sendable {
     public let tipoFecha: TipoFecha
     public let sensible: Bool
     public let nota: String?
+    /// Archivos que se mueven junto con `url`, como los restos de una app en la Librería.
+    public let extras: [URL]
 
-    public init(url: URL, categoria: Categoria, bytes: Int64, fecha: Date, tipoFecha: TipoFecha, sensible: Bool, nota: String? = nil) {
+    public init(url: URL, categoria: Categoria, bytes: Int64, fecha: Date, tipoFecha: TipoFecha, sensible: Bool,
+                nota: String? = nil, extras: [URL] = []) {
         self.url = url
         self.categoria = categoria
         self.bytes = bytes
@@ -75,6 +81,7 @@ public struct Hallazgo: Identifiable, Hashable, Sendable {
         self.tipoFecha = tipoFecha
         self.sensible = sensible
         self.nota = nota
+        self.extras = extras
     }
 
     /// Un archivo puede salir en dos categorías (grande y viejo), así que el id combina ambas.

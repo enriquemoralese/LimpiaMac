@@ -10,6 +10,8 @@ public struct Configuracion: Sendable {
     public var minimoDormidos: Int64 = 50 * 1_000_000
     public var minimoDuplicados: Int64 = 1_000_000
     public var minimoBasura: Int64 = 1_000_000
+    /// `nil` usa /Applications y ~/Applications. Las pruebas pasan carpetas ficticias.
+    public var carpetasApps: [URL]?
 
     public init() {}
 }
@@ -61,6 +63,9 @@ public struct Escaner: Sendable {
 
         progreso("Buscando duplicados")
         hallazgos += try duplicados(visibles, errores: &errores)
+
+        progreso("Revisando aplicaciones")
+        hallazgos += try aplicaciones(errores: &errores)
 
         return ResultadoEscaneo(hallazgos: hallazgos, errores: errores)
     }

@@ -54,6 +54,7 @@ final class FLStudioTests: XCTestCase {
         var c = Configuracion()
         c.minimoViejos = 1_000_000
         c.minimoDormidos = 1_000_000
+        c.carpetasApps = []
         let reglas = Reglas(inicio: casa, extras: Array(FLStudio.carpetasEnUso(inicio: casa)))
         let r = try Escaner(reglas: reglas, config: c).escanear()
 

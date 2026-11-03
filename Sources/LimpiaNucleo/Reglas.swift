@@ -24,7 +24,7 @@ public struct Reglas: Sendable {
     /// Carpetas de trabajo en la raíz de inicio (Quaio-Finance, quaio-eco-agent...).
     static let prefijosIntocables = ["quaio", "lexcolab"]
     /// FL Studio y beats: cualquier carpeta cuyo nombre los contenga.
-    static let fragmentosIntocables = ["beat", "image-line", "fl studio"]
+    static let fragmentosIntocables = ["beat", "image-line", "fl studio", "fl cloud"]
     static let extensionesIntocables: Set<String> = ["flp", "fst"]
 
     public init(inicio: URL, extras: [URL] = []) {
@@ -49,7 +49,11 @@ public struct Reglas: Sendable {
         if intocables.contains(where: { ruta == $0 || ruta.hasPrefix($0 + "/") }) { return true }
         if Self.extensionesIntocables.contains(url.pathExtension.lowercased()) { return true }
         let base = inicio.path.lowercased()
-        guard ruta.hasPrefix(base + "/") else { return false }
+        // Fuera de la carpeta de inicio (por ejemplo /Applications) solo cuenta el nombre del elemento.
+        guard ruta.hasPrefix(base + "/") else {
+            let nombre = url.lastPathComponent.lowercased()
+            return Self.fragmentosIntocables.contains { nombre.contains($0) }
+        }
         let componentes = ruta.dropFirst(base.count + 1).split(separator: "/").map(String.init)
         if let primero = componentes.first, Self.prefijosIntocables.contains(where: { primero.hasPrefix($0) }) {
             return true

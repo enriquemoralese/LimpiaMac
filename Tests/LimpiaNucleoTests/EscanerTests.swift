@@ -35,6 +35,7 @@ final class EscanerTests: XCTestCase {
         c.minimoDormidos = 1_000_000
         c.minimoDuplicados = 100_000
         c.minimoBasura = 100_000
+        c.carpetasApps = []
         return try Escaner(reglas: Reglas(inicio: casa), config: c).escanear()
     }
 

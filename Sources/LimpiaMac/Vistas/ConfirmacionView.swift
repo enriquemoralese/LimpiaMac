@@ -35,6 +35,12 @@ import SwiftUI
             .padding(12)
             .background(.background.secondary, in: RoundedRectangle(cornerRadius: 10))
 
+            let restos = elegidos.reduce(0) { $0 + $1.extras.count }
+            if restos > 0 {
+                Label("Incluye \(restos) restos de apps en la Librería (cachés, preferencias, datos).", systemImage: "app.dashed")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
+
             if !sensibles.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Label("\(sensibles.count) con nombre sensible", systemImage: "lock.fill")
