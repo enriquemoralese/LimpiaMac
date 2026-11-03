@@ -126,13 +126,13 @@ final class Estado {
         }
     }
 
-    /// Lo vacía Finder, igual que desde el Dock. Es la única acción definitiva de la app.
-    func vaciarPapelera() -> String? {
-        var error: NSDictionary?
-        NSAppleScript(source: "tell application \"Finder\" to empty trash")?.executeAndReturnError(&error)
+    /// La única acción definitiva de la app. Antes se le pedía a Finder, pero Finder falla completo
+    /// con un error genérico si un solo elemento no se puede borrar.
+    func vaciarPapelera() async -> ResultadoVaciado {
+        let papelera = inicio.appendingPathComponent(".Trash")
+        let r = await Task.detached { Papelera.vaciar(papelera) }.value
         medirPapelera()
-        if let error { return error[NSAppleScript.errorMessage] as? String ?? "Finder no pudo vaciar la Papelera." }
-        return nil
+        return r
     }
 }
 

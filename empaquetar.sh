@@ -29,7 +29,6 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
     <key>NSHighResolutionCapable</key><true/>
-    <key>NSAppleEventsUsageDescription</key><string>LimpiaMac le pide a Finder que vacíe la Papelera cuando tú lo confirmas.</string>
 </dict>
 </plist>
 PLIST

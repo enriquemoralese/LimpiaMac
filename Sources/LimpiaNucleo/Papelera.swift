@@ -102,3 +102,45 @@ public enum Papelera {
         return (try? FileManager.default.contentsOfDirectory(atPath: protegida.path)) != nil
     }
 }
+
+public struct ResultadoVaciado: Sendable {
+    public var borrados = 0
+    public var bytes: Int64 = 0
+    public var errores: [String] = []
+}
+
+extension Papelera {
+    /// Borra de forma definitiva cada elemento de la Papelera. Va uno por uno para que, si algo
+    /// falla (en uso, bloqueado, de otro usuario), lo demás sí se borre y se sepa cuál falló.
+    public static func vaciar(_ papelera: URL) -> ResultadoVaciado {
+        var r = ResultadoVaciado()
+        let elementos: [URL]
+        do {
+            elementos = try FileManager.default.contentsOfDirectory(at: papelera, includingPropertiesForKeys: nil)
+        } catch {
+            r.errores.append("No se pudo leer la Papelera: \(error.localizedDescription)")
+            return r
+        }
+        for url in elementos where url.lastPathComponent != ".DS_Store" {
+            var ignorados: [String] = []
+            let bytes = Escaner.ocupado(url, errores: &ignorados)
+            do {
+                try FileManager.default.removeItem(at: url)
+                r.borrados += 1
+                r.bytes += bytes
+            } catch {
+                r.errores.append("\(url.lastPathComponent): \(motivo(error))")
+            }
+        }
+        return r
+    }
+
+    /// El error de Foundation trae el motivo real (permiso, bloqueado) en el error interno.
+    static func motivo(_ error: Error) -> String {
+        let ns = error as NSError
+        if let interno = ns.userInfo[NSUnderlyingErrorKey] as? NSError, interno.domain == NSPOSIXErrorDomain {
+            return String(cString: strerror(Int32(interno.code)))
+        }
+        return ns.localizedDescription
+    }
+}
