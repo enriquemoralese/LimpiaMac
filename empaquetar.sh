@@ -7,8 +7,10 @@ swift build -c release
 
 APP=LimpiaMac.app
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/LimpiaMac "$APP/Contents/MacOS/LimpiaMac"
+# Se regenera con: swift Recursos/generar_icono.swift icono.png (y luego sips + iconutil)
+cp Recursos/LimpiaMac.icns "$APP/Contents/Resources/LimpiaMac.icns"
 
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -19,6 +21,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>CFBundleDisplayName</key><string>LimpiaMac</string>
     <key>CFBundleIdentifier</key><string>local.enrique.LimpiaMac</string>
     <key>CFBundleExecutable</key><string>LimpiaMac</string>
+    <key>CFBundleIconFile</key><string>LimpiaMac</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>0.1</string>
     <key>CFBundleVersion</key><string>1</string>
