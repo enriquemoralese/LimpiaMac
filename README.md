@@ -2,7 +2,7 @@
 
 App para Mac que encuentra lo que ocupa espacio sin servir y lo manda a la Papelera solo si tú lo apruebas.
 
-Funciona en Macs con chip Apple (M1 o más nuevo) y macOS 14 o más nuevo.
+Funciona en Macs con chip Apple o Intel y macOS 14 o más nuevo.
 
 ## Descargar
 

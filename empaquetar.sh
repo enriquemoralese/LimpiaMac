@@ -1,14 +1,14 @@
 #!/bin/bash
-# Compila en modo release y arma iClear.app con firma ad hoc (solo para esta Mac).
+# Compila en modo release para chips Apple e Intel y arma iClear.app con firma ad hoc.
 set -euo pipefail
 cd "$(dirname "$0")"
 
-swift build -c release
+swift build -c release --arch arm64 --arch x86_64
 
 APP=iClear.app
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp .build/release/iClear "$APP/Contents/MacOS/iClear"
+cp .build/apple/Products/Release/iClear "$APP/Contents/MacOS/iClear"
 # Se regenera con: swift Recursos/generar_icono.swift icono.png (y luego sips + iconutil)
 cp Recursos/iClear.icns "$APP/Contents/Resources/iClear.icns"
 
