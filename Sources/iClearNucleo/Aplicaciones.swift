@@ -3,9 +3,10 @@ import Foundation
 
 /// Apps instaladas y sus restos en ~/Library, buscados por el identificador de la app.
 extension Escaner {
-    /// Safari viene con el sistema y macOS no deja borrarlo; FL Studio y sus apps se protegen siempre.
+    /// Safari viene con el sistema y macOS no deja borrarlo.
     static let appsIntocables: Set<String> = ["com.apple.Safari"]
-    static let prefijosAppsIntocables = ["com.image-line."]
+    /// Apps de FL Studio, solo con la opción de FL Studio encendida.
+    static let prefijosAppsFL = ["com.image-line."]
 
     func aplicaciones(errores: inout [String]) throws -> [Hallazgo] {
         let fm = FileManager.default
@@ -26,7 +27,7 @@ extension Escaner {
                 // Algunos accesos directos (como los juegos de Steam) no tienen identificador:
                 // se listan, pero sin buscar restos.
                 let id = Bundle(url: app)?.bundleIdentifier ?? ""
-                if Self.appsIntocables.contains(id) || Self.prefijosAppsIntocables.contains(where: id.hasPrefix) || reglas.esIntocable(app) {
+                if Self.appsIntocables.contains(id) || (reglas.protegerFL && Self.prefijosAppsFL.contains(where: id.hasPrefix)) || reglas.esIntocable(app) {
                     continue
                 }
                 // Las apps de Apple comparten archivos con el sistema en la Librería: solo se mueve la app.

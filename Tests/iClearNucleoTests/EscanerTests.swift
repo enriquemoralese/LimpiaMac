@@ -41,7 +41,8 @@ final class EscanerTests: XCTestCase {
 
     /// Carpetas que una persona protegería en Ajustes.
     var reglas: Reglas {
-        Reglas(inicio: casa, extras: [casa.appendingPathComponent("Downloads/Importantes"), casa.appendingPathComponent("Trabajo")])
+        Reglas(inicio: casa, extras: [casa.appendingPathComponent("Downloads/Importantes"), casa.appendingPathComponent("Trabajo")],
+               protegerFL: true)
     }
 
     func rutas(_ r: ResultadoEscaneo, _ c: Categoria) -> Set<String> {

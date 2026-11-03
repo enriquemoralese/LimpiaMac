@@ -55,7 +55,7 @@ final class FLStudioTests: XCTestCase {
         c.minimoViejos = 1_000_000
         c.minimoDormidos = 1_000_000
         c.carpetasApps = []
-        let reglas = Reglas(inicio: casa, extras: Array(FLStudio.carpetasEnUso(inicio: casa)))
+        let reglas = Reglas(inicio: casa, extras: Array(FLStudio.carpetasEnUso(inicio: casa)), protegerFL: true)
         let r = try Escaner(reglas: reglas, config: c).escanear()
 
         let nombres = Set(r.hallazgos.map(\.url.path))

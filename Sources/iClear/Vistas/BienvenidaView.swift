@@ -29,7 +29,7 @@ import SwiftUI
                 Form { CarpetasPropias() }
                     .formStyle(.grouped)
                     .frame(height: 150)
-                Text("iClear ya protege de fábrica tus llaves (.ssh), configuraciones y proyectos de FL Studio.")
+                Text("iClear ya protege de fábrica tus llaves (.ssh, .gnupg) y las configuraciones de tus apps.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 

@@ -34,7 +34,7 @@ final class Estado {
     /// Carpetas de samples que usa FL Studio. Se recalculan en cada escaneo y quedan protegidas.
     var enUsoFL: [URL] = []
 
-    var reglas: Reglas { Reglas(inicio: inicio, extras: Ajustes.protegidas + enUsoFL) }
+    var reglas: Reglas { Reglas(inicio: inicio, extras: Ajustes.protegidas + enUsoFL, protegerFL: Ajustes.protegerFL) }
 
     init() {
         errores = Ajustes.migrarNombreAnterior()
@@ -43,6 +43,7 @@ final class Estado {
         cargarRecientes()
         let inicio = inicio
         Task {
+            guard Ajustes.protegerFL else { return }
             enUsoFL = await Task.detached { FLStudio.carpetasEnUso(inicio: inicio).sorted { $0.path < $1.path } }.value
         }
     }
@@ -57,12 +58,16 @@ final class Estado {
         let inicio = inicio
         let extras = Ajustes.protegidas
         let config = Ajustes.configuracion
+        let protegerFL = Ajustes.protegerFL
         tarea = Task {
             let trabajo = Task.detached(priority: .userInitiated) { () throws -> (ResultadoEscaneo, [URL]) in
                 let avisar: @Sendable (String) -> Void = { texto in Task { @MainActor in self.progreso = texto } }
-                avisar("Buscando los samples que usa FL Studio")
-                let fl = FLStudio.carpetasEnUso(inicio: inicio).sorted { $0.path < $1.path }
-                let escaner = Escaner(reglas: Reglas(inicio: inicio, extras: extras + fl), config: config)
+                var fl: [URL] = []
+                if protegerFL {
+                    avisar("Buscando los samples que usa FL Studio")
+                    fl = FLStudio.carpetasEnUso(inicio: inicio).sorted { $0.path < $1.path }
+                }
+                let escaner = Escaner(reglas: Reglas(inicio: inicio, extras: extras + fl, protegerFL: protegerFL), config: config)
                 return (try escaner.escanear(progreso: avisar), fl)
             }
             let resultado = await withTaskCancellationHandler {

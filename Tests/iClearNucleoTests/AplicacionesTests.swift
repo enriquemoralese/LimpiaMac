@@ -32,11 +32,11 @@ final class AplicacionesTests: XCTestCase {
         try Data(repeating: 2, count: kb * 1024).write(to: url)
     }
 
-    func escanearApps() throws -> [Hallazgo] {
+    func escanearApps(protegerFL: Bool = false) throws -> [Hallazgo] {
         var c = Configuracion()
         c.carpetasApps = [apps]
         var errores: [String] = []
-        let r = try Escaner(reglas: Reglas(inicio: casa), config: c).aplicaciones(errores: &errores)
+        let r = try Escaner(reglas: Reglas(inicio: casa, protegerFL: protegerFL), config: c).aplicaciones(errores: &errores)
         XCTAssertEqual(errores, [])
         return r
     }
@@ -69,9 +69,11 @@ final class AplicacionesTests: XCTestCase {
         try crearApp("iMovie", id: "com.apple.iMovieApp")
         try crear("Library/Caches/com.apple.iMovieApp/cache.db")
 
-        let r = try escanearApps()
+        let r = try escanearApps(protegerFL: true)
         XCTAssertEqual(r.map(\.nombre), ["iMovie.app"])
         XCTAssertEqual(r[0].extras, [])
+        // Con la opción apagada (de fábrica), las apps de FL son como cualquier otra; Safari sigue fuera.
+        XCTAssertEqual(Set(try escanearApps().map(\.nombre)), ["FL Studio 2025.app", "FL Cloud Plugins.app", "iMovie.app"])
     }
 
     func testMoverLlevaLosRestosYNoRepite() throws {

@@ -183,7 +183,7 @@ public struct Escaner: Sendable {
 
     private func registrar(_ url: URL, _ v: URLResourceValues, en archivos: inout [Archivo], carpetasFL: inout Set<String>, raices: Set<String>) {
         guard v.isRegularFile == true else { return }
-        if url.pathExtension.lowercased() == "flp" {
+        if reglas.protegerFL && url.pathExtension.lowercased() == "flp" {
             // La carpeta de un proyecto de FL Studio queda protegida completa, con sus samples.
             // Si el .flp está suelto en Descargas o similar, solo se protege el archivo.
             let carpeta = url.deletingLastPathComponent().path

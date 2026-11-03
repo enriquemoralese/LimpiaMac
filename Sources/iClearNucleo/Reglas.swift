@@ -4,6 +4,8 @@ import Foundation
 /// Todo se decide por ruta y nombre; nunca se lee el contenido de un archivo.
 public struct Reglas: Sendable {
     public let inicio: URL
+    /// Opción de Ajustes, apagada de fábrica: proyectos .flp, samples en uso y apps de FL Studio.
+    public let protegerFL: Bool
     /// Rutas absolutas en minúsculas (APFS no distingue mayúsculas).
     let intocables: [String]
 
@@ -13,19 +15,20 @@ public struct Reglas: Sendable {
         ".ssh",
         ".gnupg",
         ".config",
-        "Documents/Image-Line",
-        "Library/Application Support/Image-Line",
         "Music/Audio Music Apps",
     ]
-    /// FL Studio: cualquier carpeta o app cuyo nombre lo contenga.
-    static let fragmentosIntocables = ["image-line", "fl studio", "fl cloud"]
-    static let extensionesIntocables: Set<String> = ["flp", "fst"]
+    /// Solo con la opción de FL Studio encendida.
+    static let carpetasFL = ["Documents/Image-Line", "Library/Application Support/Image-Line"]
+    static let fragmentosFL = ["image-line", "fl studio", "fl cloud"]
+    static let extensionesFL: Set<String> = ["flp", "fst"]
 
-    public init(inicio: URL, extras: [URL] = []) {
+    public init(inicio: URL, extras: [URL] = [], protegerFL: Bool = false) {
         let base = Self.canonica(inicio)
         self.inicio = base
+        self.protegerFL = protegerFL
+        let fijas = Self.intocablesFijos + (protegerFL ? Self.carpetasFL : [])
         // Las fijas se arman sobre la base ya normalizada: `realpath` falla con rutas que aún no existen.
-        intocables = (Self.intocablesFijos.map { base.appendingPathComponent($0) } + extras.map(Self.canonica))
+        intocables = (fijas.map { base.appendingPathComponent($0) } + extras.map(Self.canonica))
             .map { $0.path.lowercased() }
     }
 
@@ -41,15 +44,16 @@ public struct Reglas: Sendable {
         // Sin standardizedFileURL: también quita "/private" y la ruta dejaría de coincidir con la base.
         let ruta = url.path.lowercased()
         if intocables.contains(where: { ruta == $0 || ruta.hasPrefix($0 + "/") }) { return true }
-        if Self.extensionesIntocables.contains(url.pathExtension.lowercased()) { return true }
+        guard protegerFL else { return false }
+        if Self.extensionesFL.contains(url.pathExtension.lowercased()) { return true }
         let base = inicio.path.lowercased()
         // Fuera de la carpeta de inicio (por ejemplo /Applications) solo cuenta el nombre del elemento.
         guard ruta.hasPrefix(base + "/") else {
             let nombre = url.lastPathComponent.lowercased()
-            return Self.fragmentosIntocables.contains { nombre.contains($0) }
+            return Self.fragmentosFL.contains { nombre.contains($0) }
         }
         let componentes = ruta.dropFirst(base.count + 1).split(separator: "/").map(String.init)
-        return componentes.contains { c in Self.fragmentosIntocables.contains { c.contains($0) } }
+        return componentes.contains { c in Self.fragmentosFL.contains { c.contains($0) } }
     }
 
     // MARK: - Nombres sensibles

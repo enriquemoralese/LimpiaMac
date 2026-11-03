@@ -9,6 +9,9 @@ enum Ajustes {
     static let claveDormidos = "mesesDormidos"
     static let claveProtegidas = "protegidas"
     static let claveBienvenida = "bienvenidaVista"
+    static let claveFL = "protegerFL"
+
+    static var protegerFL: Bool { UserDefaults.standard.bool(forKey: claveFL) }
 
     static var configuracion: Configuracion {
         let d = UserDefaults.standard
@@ -57,6 +60,7 @@ enum Ajustes {
     @AppStorage(Ajustes.claveViejos) private var mesesViejos = 12
     @AppStorage(Ajustes.claveDormidos) private var mesesDormidos = 18
     @Environment(Estado.self) private var estado
+    @AppStorage(Ajustes.claveFL) private var protegerFL = false
 
     var body: some View {
         Form {
@@ -69,17 +73,22 @@ enum Ajustes {
                 ForEach(Reglas.intocablesFijos, id: \.self) { ruta in
                     Label("~/" + ruta, systemImage: "lock.fill").foregroundStyle(.secondary)
                 }
-                Label("Proyectos .flp y apps de FL Studio", systemImage: "lock.fill").foregroundStyle(.secondary)
-                ForEach(estado.enUsoFL, id: \.self) { url in
-                    Label(url.path.replacingOccurrences(of: NSHomeDirectory(), with: "~"), systemImage: "waveform")
-                        .foregroundStyle(.secondary)
-                        .help("FL Studio usa samples de aquí")
+                Toggle(isOn: $protegerFL) {
+                    Text("Proteger FL Studio")
+                    Text("Proyectos .flp, los samples que usan y las apps de FL Studio.")
+                }
+                if protegerFL {
+                    ForEach(estado.enUsoFL, id: \.self) { url in
+                        Label(url.path.replacingOccurrences(of: NSHomeDirectory(), with: "~"), systemImage: "waveform")
+                            .foregroundStyle(.secondary)
+                            .help("FL Studio usa samples de aquí")
+                    }
                 }
                 CarpetasPropias()
             } header: {
                 Text("Carpetas protegidas")
             } footer: {
-                Text("La app nunca revisa ni mueve nada dentro de estas carpetas. Las que tienen onda las detectó en tus proyectos de FL Studio y en su navegador de sonidos.")
+                Text("La app nunca revisa ni mueve nada dentro de estas carpetas. Con FL Studio protegido, las carpetas con onda las detecta en tus proyectos y en su navegador de sonidos.")
                     .foregroundStyle(.secondary)
             }
         }

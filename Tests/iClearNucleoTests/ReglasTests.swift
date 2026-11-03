@@ -6,24 +6,27 @@ final class ReglasTests: XCTestCase {
 
     func testIntocablesDeFabrica() {
         let r = Reglas(inicio: casa)
-        let protegidas = [
-            ".ssh/id_ed25519",
-            ".gnupg/llave.gpg",
-            "Documents/Image-Line/FL Studio/Projects/Backup/a.flp",
-            "Library/Application Support/Image-Line/datos",
-            "Music/Audio Music Apps/Plug-In Settings/Ultrabeat/x.pst",
-            "Desktop/cancion.flp",
-        ]
+        let protegidas = [".ssh/id_ed25519", ".gnupg/llave.gpg", ".config/app.toml", "Music/Audio Music Apps/Plug-In Settings/x.pst"]
         for ruta in protegidas {
             XCTAssertTrue(r.esIntocable(casa.appendingPathComponent(ruta)), ruta)
         }
-        XCTAssertTrue(r.esIntocable(URL(fileURLWithPath: "/Applications/FL Studio 2025.app")))
-        // Nada personal viene de fábrica: eso se agrega en Ajustes.
+        // Nada personal viene de fábrica, tampoco FL Studio: eso se elige en Ajustes.
         let libres = ["Downloads/instalador.dmg", "Movies/video.mov", "Documents/Escuela/tarea.docx",
-                      "Downloads/Importantes/contrato.pdf", "Trabajo/datos.csv", "Music/Mis Beats/kick.wav"]
+                      "Downloads/Importantes/contrato.pdf", "Trabajo/datos.csv", "Music/Mis Beats/kick.wav",
+                      "Documents/Image-Line/FL Studio/Projects/a.flp", "Desktop/cancion.flp"]
         for ruta in libres {
             XCTAssertFalse(r.esIntocable(casa.appendingPathComponent(ruta)), ruta)
         }
+        XCTAssertFalse(r.esIntocable(URL(fileURLWithPath: "/Applications/FL Studio 2025.app")))
+    }
+
+    func testOpcionFLStudio() {
+        let r = Reglas(inicio: casa, protegerFL: true)
+        for ruta in ["Documents/Image-Line/FL Studio/Projects/a.flp", "Library/Application Support/Image-Line/datos", "Desktop/cancion.flp"] {
+            XCTAssertTrue(r.esIntocable(casa.appendingPathComponent(ruta)), ruta)
+        }
+        XCTAssertTrue(r.esIntocable(URL(fileURLWithPath: "/Applications/FL Studio 2025.app")))
+        XCTAssertFalse(r.esIntocable(casa.appendingPathComponent("Movies/video.mov")))
     }
 
     func testCarpetasExtra() {
