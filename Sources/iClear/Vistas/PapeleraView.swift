@@ -1,4 +1,4 @@
-import LimpiaNucleo
+import iClearNucleo
 import SwiftUI
 
 @MainActor struct PapeleraView: View {
@@ -41,7 +41,7 @@ import SwiftUI
                 }
             }
         } message: {
-            Text("Esto borra de forma definitiva todo lo que hay en la Papelera, incluido lo que no movió LimpiaMac. No se puede deshacer.")
+            Text("Esto borra de forma definitiva todo lo que hay en la Papelera, incluido lo que no movió iClear. No se puede deshacer.")
         }
         .alert(titulo, isPresented: Binding(get: { resultado != nil }, set: { if !$0 { resultado = nil } })) {
             Button("Aceptar") { resultado = nil }

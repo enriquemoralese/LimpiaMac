@@ -17,7 +17,7 @@ public struct ResultadoLimpieza: Sendable {
 public enum Papelera {
     public static var historialPorDefecto: URL {
         FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/LimpiaMac/historial.json")
+            .appendingPathComponent("Library/Application Support/iClear/historial.json")
     }
 
     /// Quita rutas repetidas y las que ya van dentro de una carpeta seleccionada,

@@ -1,12 +1,12 @@
 import XCTest
-@testable import LimpiaNucleo
+@testable import iClearNucleo
 
 /// Una papelera ficticia en el directorio temporal. Nunca toca la Papelera real.
 final class VaciarTests: XCTestCase {
     var papelera: URL!
 
     override func setUpWithError() throws {
-        papelera = FileManager.default.temporaryDirectory.appendingPathComponent("LimpiaMacPapelera-\(UUID().uuidString)")
+        papelera = FileManager.default.temporaryDirectory.appendingPathComponent("iClearPapelera-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: papelera.appendingPathComponent("carpeta"), withIntermediateDirectories: true)
         try Data(repeating: 1, count: 50_000).write(to: papelera.appendingPathComponent("normal.mov"))
         try Data(repeating: 2, count: 50_000).write(to: papelera.appendingPathComponent("carpeta/dentro.pdf"))

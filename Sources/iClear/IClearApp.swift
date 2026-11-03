@@ -1,11 +1,11 @@
 import SwiftUI
 
 @main
-@MainActor struct LimpiaMacApp: App {
+@MainActor struct IClearApp: App {
     @State private var estado = Estado()
 
     var body: some Scene {
-        WindowGroup("LimpiaMac") {
+        WindowGroup("iClear") {
             Principal()
                 .environment(estado)
                 .frame(minWidth: 980, minHeight: 620)

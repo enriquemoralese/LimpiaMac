@@ -1,5 +1,5 @@
 import XCTest
-@testable import LimpiaNucleo
+@testable import iClearNucleo
 
 /// Apps ficticias en una carpeta temporal. Nunca toca /Applications ni la Papelera real.
 final class AplicacionesTests: XCTestCase {
@@ -7,7 +7,7 @@ final class AplicacionesTests: XCTestCase {
     var apps: URL!
 
     override func setUpWithError() throws {
-        casa = FileManager.default.temporaryDirectory.appendingPathComponent("LimpiaMacApps-\(UUID().uuidString)")
+        casa = FileManager.default.temporaryDirectory.appendingPathComponent("IClearApps-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: casa, withIntermediateDirectories: true)
         casa = Reglas.canonica(casa)
         apps = casa.appendingPathComponent("Aplicaciones")
@@ -90,9 +90,9 @@ final class AplicacionesTests: XCTestCase {
         XCTAssertEqual(llamadas.sorted(), ["Telegram.app", "ru.keepcoder.Telegram"])
     }
 
-    /// Solo lectura sobre las apps reales; se corre a mano con LIMPIAMAC_REAL=1 para ver qué detecta.
+    /// Solo lectura sobre las apps reales; se corre a mano con ICLEAR_REAL=1 para ver qué detecta.
     func testMostrarAppsReales() throws {
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["LIMPIAMAC_REAL"] == "1")
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ICLEAR_REAL"] == "1")
         var errores: [String] = []
         let r = try Escaner(reglas: Reglas(inicio: FileManager.default.homeDirectoryForCurrentUser)).aplicaciones(errores: &errores)
         for h in r.sorted(by: { $0.bytes > $1.bytes }) {

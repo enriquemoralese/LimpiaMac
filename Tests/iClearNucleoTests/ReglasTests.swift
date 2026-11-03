@@ -1,5 +1,5 @@
 import XCTest
-@testable import LimpiaNucleo
+@testable import iClearNucleo
 
 final class ReglasTests: XCTestCase {
     let casa = URL(fileURLWithPath: "/Users/prueba")

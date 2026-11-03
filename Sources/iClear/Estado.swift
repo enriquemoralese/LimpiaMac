@@ -1,5 +1,5 @@
 import AppKit
-import LimpiaNucleo
+import iClearNucleo
 import Observation
 
 enum Seccion: Hashable {
@@ -34,6 +34,7 @@ final class Estado {
     var reglas: Reglas { Reglas(inicio: inicio, extras: Ajustes.protegidas + enUsoFL) }
 
     init() {
+        errores = Ajustes.migrarNombreAnterior()
         accesoCompleto = Papelera.tieneAccesoCompleto(inicio: inicio)
         medirPapelera()
         let inicio = inicio

@@ -1,5 +1,5 @@
 import AppKit
-import LimpiaNucleo
+import iClearNucleo
 import SwiftUI
 
 /// Preferencias guardadas en UserDefaults. Las vistas usan @AppStorage con las mismas claves.
@@ -16,6 +16,33 @@ enum Ajustes {
         if d.object(forKey: claveViejos) != nil { c.mesesViejos = d.integer(forKey: claveViejos) }
         if d.object(forKey: claveDormidos) != nil { c.mesesDormidos = d.integer(forKey: claveDormidos) }
         return c
+    }
+
+    /// La app se llamaba LimpiaMac (identificador local.enrique.LimpiaMac). Una sola vez copia
+    /// sus ajustes y mueve su historial al nombre nuevo. Devuelve los errores para mostrarlos.
+    static func migrarNombreAnterior() -> [String] {
+        let d = UserDefaults.standard
+        let marca = "migradoDeLimpiaMac"
+        guard !d.bool(forKey: marca) else { return [] }
+        var errores: [String] = []
+        if let anterior = UserDefaults(suiteName: "local.enrique.LimpiaMac") {
+            for clave in [claveUmbral, claveViejos, claveDormidos, claveProtegidas] where d.object(forKey: clave) == nil {
+                if let valor = anterior.object(forKey: clave) { d.set(valor, forKey: clave) }
+            }
+        }
+        let soporte = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support")
+        let viejo = soporte.appendingPathComponent("LimpiaMac/historial.json")
+        let nuevo = Papelera.historialPorDefecto
+        if FileManager.default.fileExists(atPath: viejo.path) && !FileManager.default.fileExists(atPath: nuevo.path) {
+            do {
+                try FileManager.default.createDirectory(at: nuevo.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try FileManager.default.moveItem(at: viejo, to: nuevo)
+            } catch {
+                errores.append("No se pudo mover el historial de LimpiaMac: \(error.localizedDescription)")
+            }
+        }
+        d.set(true, forKey: marca)
+        return errores
     }
 
     static var protegidas: [URL] {

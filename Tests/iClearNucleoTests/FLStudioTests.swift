@@ -1,12 +1,12 @@
 import XCTest
-@testable import LimpiaNucleo
+@testable import iClearNucleo
 
 final class FLStudioTests: XCTestCase {
     var casa: URL!
     let hace3Anios = Date().addingTimeInterval(-3 * 365 * 86_400)
 
     override func setUpWithError() throws {
-        casa = FileManager.default.temporaryDirectory.appendingPathComponent("LimpiaMacFL-\(UUID().uuidString)")
+        casa = FileManager.default.temporaryDirectory.appendingPathComponent("iClearFL-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: casa, withIntermediateDirectories: true)
         casa = Reglas.canonica(casa)
     }
@@ -70,9 +70,9 @@ final class FLStudioTests: XCTestCase {
         XCTAssertNil(FLStudio.raizDeKit(casa.path + "/Library/Caches/x", inicio: casa))
     }
 
-    /// Solo lectura sobre la carpeta real; se corre a mano con LIMPIAMAC_REAL=1 para ver qué detecta.
+    /// Solo lectura sobre la carpeta real; se corre a mano con ICLEAR_REAL=1 para ver qué detecta.
     func testMostrarCarpetasReales() throws {
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["LIMPIAMAC_REAL"] == "1")
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["ICLEAR_REAL"] == "1")
         let reales = FLStudio.carpetasEnUso(inicio: FileManager.default.homeDirectoryForCurrentUser)
         for url in reales.sorted(by: { $0.path < $1.path }) { print("FL en uso:", url.path) }
     }

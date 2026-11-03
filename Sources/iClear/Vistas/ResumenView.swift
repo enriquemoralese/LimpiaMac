@@ -1,5 +1,5 @@
 import Charts
-import LimpiaNucleo
+import iClearNucleo
 import SwiftUI
 
 @MainActor struct ResumenView: View {
@@ -102,7 +102,7 @@ import SwiftUI
             Image(systemName: "lock.shield").font(.title2).foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 6) {
                 Text("Falta el acceso completo al disco").font(.headline)
-                Text("Sin él, macOS esconde algunas carpetas y el escaneo sale incompleto. Agrega LimpiaMac en Privacidad y seguridad › Acceso total al disco y vuelve a abrir la app.")
+                Text("Sin él, macOS esconde algunas carpetas y el escaneo sale incompleto. Agrega iClear en Privacidad y seguridad › Acceso total al disco y vuelve a abrir la app.")
                     .font(.callout).foregroundStyle(.secondary)
                 Button("Abrir Ajustes del Sistema") {
                     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)

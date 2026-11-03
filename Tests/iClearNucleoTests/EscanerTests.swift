@@ -1,5 +1,5 @@
 import XCTest
-@testable import LimpiaNucleo
+@testable import iClearNucleo
 
 /// Escanea una carpeta de inicio ficticia en el directorio temporal. Nunca toca la carpeta real.
 final class EscanerTests: XCTestCase {
@@ -8,7 +8,7 @@ final class EscanerTests: XCTestCase {
 
     override func setUpWithError() throws {
         casa = FileManager.default.temporaryDirectory
-            .appendingPathComponent("LimpiaMacPrueba-\(UUID().uuidString)")
+            .appendingPathComponent("iClearPrueba-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: casa, withIntermediateDirectories: true)
         casa = Reglas.canonica(casa)
     }

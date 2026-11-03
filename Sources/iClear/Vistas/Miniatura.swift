@@ -1,6 +1,6 @@
 import AppKit
 import AVKit
-import LimpiaNucleo
+import iClearNucleo
 import QuickLookThumbnailing
 import SwiftUI
 import UniformTypeIdentifiers
