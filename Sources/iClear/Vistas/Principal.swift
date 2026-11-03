@@ -17,7 +17,9 @@ import SwiftUI
                             .tag(Seccion.categoria(c))
                     }
                 }
-                Section {
+                // Una sola sección: con dos, macOS 14 avisa "reentrant operation in its NSTableView
+                // delegate" al abrir, y el aviso dice que en el futuro será un error.
+                Group {
                     FilaLateral(titulo: "Movido recientemente", simbolo: "arrow.uturn.backward.circle",
                                 valor: estado.recientes.isEmpty ? nil : "\(estado.recientes.count)")
                         .tag(Seccion.recientes)
@@ -41,6 +43,7 @@ import SwiftUI
                 if estado.escaneado && !enCategoria { BarraInferior(estado: estado) }
             }
         }
+        .task { await PruebasUI.correr(estado) }
         .sheet(isPresented: $estado.confirmando) { ConfirmacionView() }
         .sheet(isPresented: Binding(get: { !bienvenidaVista }, set: { if !$0 { bienvenidaVista = true } })) {
             BienvenidaView().interactiveDismissDisabled()

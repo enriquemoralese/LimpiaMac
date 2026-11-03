@@ -35,3 +35,5 @@ cd iClear
 ./empaquetar.sh
 mv iClear.app /Applications/
 ```
+
+Pruebas: `swift test` (lógica, con carpetas ficticias) y `Scripts/pruebas_ui.sh` (la app real; escanea tu carpeta sin mover nada).

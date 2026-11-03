@@ -4,6 +4,8 @@ import SwiftUI
 @MainActor struct IClearApp: App {
     @State private var estado = Estado()
 
+    init() { PruebasUI.preparar() }
+
     var body: some Scene {
         WindowGroup("iClear") {
             Principal()
