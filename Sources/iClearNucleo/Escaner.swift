@@ -12,6 +12,8 @@ public struct Configuracion: Sendable {
     public var minimoBasura: Int64 = 1_000_000
     /// `nil` usa /Applications y ~/Applications. Las pruebas pasan carpetas ficticias.
     public var carpetasApps: [URL]?
+    /// Lee el texto de imágenes y PDF encontrados para detectar documentos sensibles.
+    public var revisarContenido = true
 
     public init() {}
 }
@@ -66,6 +68,10 @@ public struct Escaner: Sendable {
 
         progreso("Revisando aplicaciones")
         hallazgos += try aplicaciones(errores: &errores)
+
+        if config.revisarContenido {
+            hallazgos = try marcarContenidoSensible(hallazgos, progreso: progreso)
+        }
 
         return ResultadoEscaneo(hallazgos: hallazgos, errores: errores)
     }
@@ -317,6 +323,28 @@ public struct Escaner: Sendable {
         return hallazgos
     }
 
+    /// Solo revisa archivos que ya salieron como hallazgo: leer todas las fotos de la Mac tardaría demasiado.
+    func marcarContenidoSensible(_ hallazgos: [Hallazgo], progreso: @Sendable (String) -> Void) throws -> [Hallazgo] {
+        let revisar = Set(hallazgos.filter { !$0.sensible && $0.categoria != .dormidos && $0.categoria != .aplicaciones
+            && Contenido.puedeRevisar($0.url) }.map(\.url))
+        progreso("Revisando el contenido de \(revisar.count) documentos")
+        // Reconocer texto es lento: se reparte entre todos los núcleos.
+        let lista = Array(revisar)
+        let marcas = Marcas(cantidad: lista.count)
+        DispatchQueue.concurrentPerform(iterations: lista.count) { i in
+            if Task.isCancelled { return }
+            if Contenido.esSensible(lista[i]) { marcas.marcar(i) }
+        }
+        try Task.checkCancellation()
+        let sensibles = Set(marcas.indices.map { lista[$0] })
+        return hallazgos.map { h in
+            guard sensibles.contains(h.url) else { return h }
+            let nota = [h.nota, "Su contenido parece un documento sensible"].compactMap { $0 }.joined(separator: " · ")
+            return Hallazgo(url: h.url, categoria: h.categoria, bytes: h.bytes, fecha: h.fecha, tipoFecha: h.tipoFecha,
+                            sensible: true, nota: nota, extras: h.extras)
+        }
+    }
+
     func agrupar(_ archivos: [Archivo], por huella: (URL) throws -> String, errores: inout [String]) throws -> [[Archivo]] {
         var grupos: [String: [Archivo]] = [:]
         for a in archivos {
@@ -352,6 +380,15 @@ public struct Escaner: Sendable {
         errores += fallas.lista
         return total
     }
+}
+
+/// Resultados de la revisión en paralelo, con candado porque varios hilos escriben a la vez.
+final class Marcas: @unchecked Sendable {
+    private let candado = NSLock()
+    private var conjunto = Set<Int>()
+    init(cantidad: Int) { conjunto.reserveCapacity(cantidad) }
+    func marcar(_ i: Int) { candado.lock(); conjunto.insert(i); candado.unlock() }
+    var indices: Set<Int> { candado.lock(); defer { candado.unlock() }; return conjunto }
 }
 
 /// Junta errores desde los manejadores del enumerador, que no pueden capturar variables `inout`.
