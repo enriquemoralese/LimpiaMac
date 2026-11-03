@@ -13,8 +13,7 @@ import SwiftUI
                     .padding(.top, 24)
 
                 if estado.escaneando {
-                    VStack(spacing: 10) {
-                        ProgressView().controlSize(.small)
+                    VStack(spacing: 8) {
                         Text(estado.progreso).font(.callout).foregroundStyle(.secondary).lineLimit(1)
                         Button("Detener") { estado.cancelar() }.buttonStyle(.link)
                     }
@@ -33,15 +32,15 @@ import SwiftUI
 
                 if estado.accesoCompleto == false { avisoAcceso }
 
-                if estado.escaneado {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 14)], spacing: 14) {
-                        ForEach(Categoria.allCases) { c in
-                            Tarjeta(categoria: c, bytes: estado.total(c), cantidad: estado.hallazgos(en: c).count)
-                                .onTapGesture { estado.seccion = .categoria(c) }
-                        }
+                // Las tarjetas siempre están; mientras escanea muestran su forma y se llenan al terminar.
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 14)], spacing: 14) {
+                    ForEach(Categoria.allCases) { c in
+                        Tarjeta(categoria: c, bytes: estado.total(c), cantidad: estado.hallazgos(en: c).count,
+                                fase: estado.escaneando ? .cargando : (estado.escaneado ? .lista : .vacia))
+                            .onTapGesture { if !estado.escaneando { estado.seccion = .categoria(c) } }
                     }
-                    .frame(maxWidth: 680)
                 }
+                .frame(maxWidth: 680)
 
                 if !estado.errores.isEmpty {
                     DisclosureGroup("\(estado.errores.count) rutas no se pudieron leer") {
@@ -121,18 +120,39 @@ import SwiftUI
     let categoria: Categoria
     let bytes: Int64
     let cantidad: Int
+    let fase: Fase
     @State private var encima = false
+    @State private var pulso = false
+
+    enum Fase { case vacia, cargando, lista }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Image(systemName: categoria.simbolo).font(.title2).foregroundStyle(Color.accentColor)
             VStack(alignment: .leading, spacing: 2) {
                 Text(categoria.titulo).font(.headline)
-                Text(cantidad == 0 ? "Nada que revisar" : "\(cantidad) elementos")
-                    .font(.caption).foregroundStyle(.secondary)
+                Group {
+                    switch fase {
+                    case .vacia: Text("Sin escanear")
+                    case .cargando: Text("00 elementos").redacted(reason: .placeholder)
+                    case .lista: Text(cantidad == 0 ? "Nada que revisar" : "\(cantidad) elementos")
+                    }
+                }
+                .font(.caption).foregroundStyle(.secondary)
             }
-            Text(tamano(bytes)).font(.system(.title2, design: .rounded).weight(.semibold)).monospacedDigit()
+            Group {
+                switch fase {
+                case .vacia: Text("—").foregroundStyle(.tertiary)
+                case .cargando: Text("00.00 GB").redacted(reason: .placeholder)
+                case .lista: Text(tamano(bytes))
+                }
+            }
+            .font(.system(.title2, design: .rounded).weight(.semibold)).monospacedDigit()
         }
+        .opacity(fase == .cargando && pulso ? 0.55 : 1)
+        .animation(fase == .cargando ? .easeInOut(duration: 0.9).repeatForever(autoreverses: true) : .smooth(duration: 0.3), value: pulso)
+        .onAppear { pulso = fase == .cargando }
+        .onChange(of: fase) { pulso = fase == .cargando }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.background.secondary, in: RoundedRectangle(cornerRadius: 14))
