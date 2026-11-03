@@ -45,3 +45,24 @@ final class EspacioAPFSTests: XCTestCase {
         XCTAssertEqual(duplicados, ["foto copia real.jpg"])
     }
 }
+
+final class HuellaTests: XCTestCase {
+    func testArchivosQueSoloDifierenEnMedioNoSonDuplicados() throws {
+        let carpeta = FileManager.default.temporaryDirectory.appendingPathComponent("iClearHuella-\(UUID().uuidString)/Pictures")
+        try FileManager.default.createDirectory(at: carpeta, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: carpeta.deletingLastPathComponent()) }
+        var datos = Data(repeating: 9, count: 1_000_000)
+        try datos.write(to: carpeta.appendingPathComponent("a.bin"))
+        datos[500_000] = 1
+        try datos.write(to: carpeta.appendingPathComponent("b.bin"))
+
+        XCTAssertEqual(try Huella.parcial(carpeta.appendingPathComponent("a.bin")),
+                       try Huella.parcial(carpeta.appendingPathComponent("b.bin")), "Iguales al principio y al final")
+        var c = Configuracion()
+        c.minimoDuplicados = 100_000
+        c.carpetasApps = []
+        let casa = Reglas.canonica(carpeta.deletingLastPathComponent())
+        let r = try Escaner(reglas: Reglas(inicio: casa), config: c).escanear()
+        XCTAssertTrue(r.hallazgos.filter { $0.categoria == .duplicados }.isEmpty, "La comparación completa los distingue")
+    }
+}

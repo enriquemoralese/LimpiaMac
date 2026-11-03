@@ -296,16 +296,13 @@ public struct Escaner: Sendable {
         let grupos = Dictionary(grouping: archivos.filter { $0.tamano >= config.minimoDuplicados }, by: \.tamano)
             .values.filter { $0.count > 1 }
         var hallazgos: [Hallazgo] = []
-        for grupo in grupos {
-            var porHuella: [String: [Archivo]] = [:]
-            for a in grupo {
-                do { porHuella[try Huella.sha256(a.url), default: []].append(a) } catch is CancellationError {
-                    throw CancellationError()
-                } catch {
-                    errores.append("\(a.url.path): \(error.localizedDescription)")
-                }
-            }
-            for iguales in porHuella.values where iguales.count > 1 {
+        // Primero se compara el principio y el final (barato); solo los que coinciden se leen completos.
+        let candidatos = try grupos.flatMap { grupo in
+            try agrupar(grupo, por: Huella.parcial, errores: &errores).filter { $0.count > 1 }
+        }
+        for grupo in candidatos {
+            let porHuella = try agrupar(grupo, por: Huella.sha256, errores: &errores)
+            for iguales in porHuella where iguales.count > 1 {
                 let ordenados = iguales.sorted { $0.creado < $1.creado }
                 let original = ordenados[0]
                 let rutaOriginal = original.url.path.replacingOccurrences(of: reglas.inicio.path, with: "~")
@@ -318,6 +315,18 @@ public struct Escaner: Sendable {
             }
         }
         return hallazgos
+    }
+
+    func agrupar(_ archivos: [Archivo], por huella: (URL) throws -> String, errores: inout [String]) throws -> [[Archivo]] {
+        var grupos: [String: [Archivo]] = [:]
+        for a in archivos {
+            do { grupos[try huella(a.url), default: []].append(a) } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                errores.append("\(a.url.path): \(error.localizedDescription)")
+            }
+        }
+        return Array(grupos.values)
     }
 
     // MARK: - Utilidades
