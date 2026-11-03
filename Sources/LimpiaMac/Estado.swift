@@ -14,6 +14,10 @@ final class Estado {
     var hallazgos: [Hallazgo] = []
     var errores: [String] = []
     var seleccion: Set<String> = []
+    /// Filas resaltadas en la tabla (clic), distintas de las marcadas para la Papelera.
+    /// Viven aquí para que el panel de vista previa, que macOS dibuja aparte, vea el cambio.
+    var filas: Set<String> = []
+    var confirmando = false
     var escaneando = false
     var escaneado = false
     var progreso = ""

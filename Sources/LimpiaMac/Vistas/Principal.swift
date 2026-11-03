@@ -3,7 +3,6 @@ import SwiftUI
 
 @MainActor struct Principal: View {
     @Environment(Estado.self) private var estado
-    @State private var confirmando = false
 
     var body: some View {
         @Bindable var estado = estado
@@ -32,11 +31,12 @@ import SwiftUI
                 case .papelera: PapeleraView()
                 }
             }
+            // En las categorías la barra la pone TablaView solo bajo la tabla, para que no tape el panel de vista previa.
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if estado.escaneado { barraInferior }
+                if estado.escaneado && !enCategoria { BarraInferior(estado: estado) }
             }
         }
-        .sheet(isPresented: $confirmando) { ConfirmacionView() }
+        .sheet(isPresented: $estado.confirmando) { ConfirmacionView() }
         .alert("Listo", isPresented: Binding(get: { estado.ultimaLimpieza != nil }, set: { if !$0 { estado.ultimaLimpieza = nil } })) {
             Button("Aceptar") { estado.ultimaLimpieza = nil }
         } message: {
@@ -46,7 +46,25 @@ import SwiftUI
         }
     }
 
-    private var barraInferior: some View {
+    private var enCategoria: Bool {
+        if case .categoria = estado.seccion { return true }
+        return false
+    }
+
+    private func mensaje(_ r: ResultadoLimpieza) -> String {
+        var texto = "Se movieron \(r.movidos.count) elementos a la Papelera (\(tamano(r.bytes))). Puedes recuperarlos desde ahí."
+        if !r.errores.isEmpty {
+            texto += "\n\n\(r.errores.count) no se pudieron mover:\n" + r.errores.prefix(5).joined(separator: "\n")
+        }
+        return texto
+    }
+}
+
+/// Total seleccionado y botón para mover a la Papelera.
+@MainActor struct BarraInferior: View {
+    let estado: Estado
+
+    var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(tamano(estado.bytesSeleccionados)).font(.title3.weight(.semibold)).monospacedDigit()
@@ -54,7 +72,7 @@ import SwiftUI
             }
             Spacer()
             Button {
-                confirmando = true
+                estado.confirmando = true
             } label: {
                 Label("Mover a la Papelera", systemImage: "trash")
                     .padding(.horizontal, 6)
@@ -67,14 +85,6 @@ import SwiftUI
         .padding(.vertical, 12)
         .background(.bar)
         .overlay(alignment: .top) { Divider() }
-    }
-
-    private func mensaje(_ r: ResultadoLimpieza) -> String {
-        var texto = "Se movieron \(r.movidos.count) elementos a la Papelera (\(tamano(r.bytes))). Puedes recuperarlos desde ahí."
-        if !r.errores.isEmpty {
-            texto += "\n\n\(r.errores.count) no se pudieron mover:\n" + r.errores.prefix(5).joined(separator: "\n")
-        }
-        return texto
     }
 }
 
