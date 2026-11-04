@@ -86,6 +86,8 @@ import SwiftUI
                 VStack(spacing: 2) {
                     Text(tamano(disco.libre)).font(.system(size: 28, weight: .semibold, design: .rounded)).monospacedDigit()
                     Text("available").font(.callout).foregroundStyle(.secondary)
+                    // El total del disco, para dar contexto: "47 GB available of 245 GB".
+                    Text("of \(tamano(disco.total))").font(.caption).foregroundStyle(.tertiary).monospacedDigit()
                     if seleccionado > 0 {
                         Text("+\(tamano(seleccionado))").font(.callout.weight(.medium)).foregroundStyle(.orange)
                     }
