@@ -65,4 +65,8 @@ final class HuellaTests: XCTestCase {
         let r = try Escaner(reglas: Reglas(inicio: casa), config: c).escanear()
         XCTAssertTrue(r.hallazgos.filter { $0.categoria == .duplicados }.isEmpty, "La comparación completa los distingue")
     }
+
+    func testTamanoCeroLlevaNumero() {
+        XCTAssertTrue(textoTamano(0).hasPrefix("0 "), textoTamano(0))
+    }
 }

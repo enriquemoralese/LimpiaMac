@@ -20,20 +20,23 @@ import SwiftUI
         let lista = lista
         Group {
             if !estado.escaneado {
-                ContentUnavailableView("Sin escanear", systemImage: categoria.simbolo,
-                                       description: Text("Ve a Resumen y presiona Escanear."))
+                ContentUnavailableView("Not Scanned", systemImage: categoria.simbolo,
+                                       description: Text("Go to Overview and click Scan."))
             } else if lista.isEmpty {
-                ContentUnavailableView("Nada por aquí", systemImage: "checkmark.circle",
+                ContentUnavailableView("Nothing Here", systemImage: "checkmark.circle",
                                        description: Text(categoria.descripcion))
             } else {
                 tabla(lista)
             }
         }
+        // Sin esto, con "Nothing Here" la barra queda pegada al texto, a media pantalla.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if estado.escaneado { BarraInferior(estado: estado) }
         }
         .inspector(isPresented: $mostrarDetalle) {
             DetalleView(estado: estado) { vistaPrevia = $0 }
+                .background(Vidrio())
                 .inspectorColumnWidth(min: 300, ideal: 440, max: 760)
         }
         .onChange(of: categoria) { estado.filas = [] }
@@ -42,20 +45,20 @@ import SwiftUI
         .toolbar {
             ToolbarItemGroup {
                 Toggle(isOn: $soloSensibles) {
-                    Label("Solo sensibles", systemImage: "lock")
+                    Label("Sensitive Only", systemImage: "lock")
                 }
-                .help("Mostrar solo archivos con nombre sensible")
+                .help("Show only files with sensitive names")
                 Button {
                     mostrarDetalle.toggle()
                 } label: {
-                    Label("Vista previa", systemImage: "sidebar.right")
+                    Label("Preview", systemImage: "sidebar.right")
                 }
-                .help("Mostrar u ocultar la vista previa")
+                .help("Show or hide the preview")
                 Menu {
-                    Button("Marcar todo (sin sensibles)") { estado.marcar(lista.filter { !$0.sensible }.map(\.id), true) }
-                    Button("Desmarcar todo") { estado.marcar(lista.map(\.id), false) }
+                    Button("Check All (Except Sensitive)") { estado.marcar(lista.filter { !$0.sensible }.map(\.id), true) }
+                    Button("Uncheck All") { estado.marcar(lista.map(\.id), false) }
                 } label: {
-                    Label("Selección", systemImage: "checklist")
+                    Label("Selection", systemImage: "checklist")
                 }
             }
         }
@@ -67,7 +70,7 @@ import SwiftUI
             TableColumn("") { h in Casilla(id: h.id, estado: estado) }
                 .width(22)
 
-            TableColumn("Nombre", value: \.nombre) { h in
+            TableColumn("Name", value: \.nombre) { h in
                 HStack(spacing: 10) {
                     Miniatura(url: h.url, lado: 36)
                     VStack(alignment: .leading, spacing: 1) {
@@ -75,7 +78,7 @@ import SwiftUI
                             Text(h.nombre).lineLimit(1).truncationMode(.middle)
                             if h.sensible {
                                 Image(systemName: "lock.fill").font(.caption2).foregroundStyle(.orange)
-                                    .help("El nombre parece de un documento sensible. Revísalo antes de moverlo.")
+                                    .help("The name looks like a sensitive document. Review it before moving it.")
                             }
                         }
                         if let nota = h.nota {
@@ -86,12 +89,12 @@ import SwiftUI
             }
             .width(min: 220, ideal: 320)
 
-            TableColumn("Tamaño", value: \.bytes) { h in
+            TableColumn("Size", value: \.bytes) { h in
                 Text(tamano(h.bytes)).monospacedDigit()
             }
             .width(min: 70, ideal: 90)
 
-            TableColumn("Fecha", value: \.fecha) { h in
+            TableColumn("Date", value: \.fecha) { h in
                 VStack(alignment: .leading, spacing: 1) {
                     Text(h.fecha, format: .dateTime.day().month(.abbreviated).year())
                     Text(h.tipoFecha.etiqueta).font(.caption).foregroundStyle(.secondary)
@@ -99,7 +102,7 @@ import SwiftUI
             }
             .width(min: 120, ideal: 150)
 
-            TableColumn("Ubicación") { h in
+            TableColumn("Location") { h in
                 Text(h.url.deletingLastPathComponent().path.replacingOccurrences(of: NSHomeDirectory(), with: "~"))
                     .foregroundStyle(.secondary).lineLimit(1).truncationMode(.head)
             }
@@ -107,6 +110,8 @@ import SwiftUI
         // SwiftUI en macOS 14 solo acepta texto en el encabezado de una columna, así que la casilla
         // de "seleccionar todo" va encima, alineada con las de las filas (medido: 14 pt desde el borde,
         // 18 × 18, encabezado de 28 pt).
+        // Sin fondo propio, para que se vea el vidrio de la ventana.
+        .scrollContentBackground(.hidden)
         .overlay(alignment: .topLeading) {
             CasillaTodos(lista: lista, estado: estado)
                 .frame(width: 18, height: 18)
@@ -115,11 +120,13 @@ import SwiftUI
         }
         .contextMenu(forSelectionType: Hallazgo.ID.self) { ids in
             let elegidos = lista.filter { ids.contains($0.id) }
-            Button("Vista rápida") { vistaPrevia = elegidos.first?.url }
-            Button("Mostrar en Finder") { NSWorkspace.shared.activateFileViewerSelecting(elegidos.map(\.url)) }
+            Button("Quick Look") { vistaPrevia = elegidos.first?.url }
+            Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting(elegidos.map(\.url)) }
+            Button("Move to Keep") { estado.guardar(elegidos) }
+                .disabled(!elegidos.contains(where: Guardar.sePuedeGuardar))
             Divider()
-            Button("Marcar") { estado.marcar(ids, true) }
-            Button("Desmarcar") { estado.marcar(ids, false) }
+            Button("Check") { estado.marcar(ids, true) }
+            Button("Uncheck") { estado.marcar(ids, false) }
         } primaryAction: { ids in
             NSWorkspace.shared.activateFileViewerSelecting(lista.filter { ids.contains($0.id) }.map(\.url))
         }
@@ -165,7 +172,7 @@ import SwiftUI
                 estado.marcar(lista.map(\.id), false)
             }
         }
-        .help(valor == .off ? "Marcar todo (sin los sensibles)" : "Desmarcar todo")
+        .help(valor == .off ? "Check all (except sensitive)" : "Uncheck all")
     }
 }
 

@@ -35,9 +35,9 @@ extension Escaner {
                 let bytesApp = Self.ocupado(app, errores: &errores)
                 let bytesRestos = restos.reduce(Int64(0)) { $0 + Self.ocupado($1, errores: &errores) }
                 let (fecha, tipo) = ultimoUso(app)
-                var nota = restos.isEmpty ? "Sin restos en la Librería" : "\(restos.count) restos en la Librería · \(Self.formato(bytesRestos))"
-                if id.hasPrefix("com.apple.") { nota = "App de Apple: se mueve solo la app" }
-                if id.isEmpty { nota = "Sin identificador: se mueve solo la app" }
+                var nota = restos.isEmpty ? "No leftovers in Library" : "\(restos.count) leftovers in Library · \(Self.formato(bytesRestos))"
+                if id.hasPrefix("com.apple.") { nota = "Apple app: only the app is moved" }
+                if id.isEmpty { nota = "No bundle ID: only the app is moved" }
                 hallazgos.append(Hallazgo(url: app, categoria: .aplicaciones, bytes: bytesApp + bytesRestos, fecha: fecha,
                                           tipoFecha: tipo, sensible: false, nota: nota, extras: restos))
             }
@@ -88,7 +88,5 @@ extension Escaner {
         return (v?.contentModificationDate ?? ahora, .estimada)
     }
 
-    static func formato(_ bytes: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
-    }
+    static func formato(_ bytes: Int64) -> String { textoTamano(bytes) }
 }

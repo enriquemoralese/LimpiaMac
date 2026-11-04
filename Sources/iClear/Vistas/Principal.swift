@@ -9,24 +9,23 @@ import SwiftUI
         @Bindable var estado = estado
         NavigationSplitView {
             List(selection: $estado.seccion) {
-                Label("Resumen", systemImage: "internaldrive").tag(Seccion.resumen)
-                Section("Hallazgos") {
-                    ForEach(Categoria.allCases) { c in
-                        FilaLateral(titulo: c.titulo, simbolo: c.simbolo,
-                                    valor: estado.escaneado ? tamano(estado.total(c)) : nil)
-                            .tag(Seccion.categoria(c))
-                    }
+                Label("Overview", systemImage: "internaldrive").tag(Seccion.resumen)
+                // Los dos títulos son filas con el mismo estilo, sin `Section`: con dos secciones, macOS 14 avisa
+                // "reentrant operation in its NSTableView delegate" al abrir (medido con Scripts/pruebas_ui.sh),
+                // y con una sola el título del sistema se ve distinto al otro.
+                TituloLateral(texto: "Findings")
+                ForEach(Categoria.allCases) { c in
+                    FilaLateral(titulo: c.titulo, simbolo: c.simbolo,
+                                valor: estado.escaneado ? tamano(estado.total(c)) : nil)
+                        .tag(Seccion.categoria(c))
                 }
-                // Una sola sección: con dos, macOS 14 avisa "reentrant operation in its NSTableView
-                // delegate" al abrir, y el aviso dice que en el futuro será un error.
-                Group {
-                    FilaLateral(titulo: "Movido recientemente", simbolo: "arrow.uturn.backward.circle",
-                                valor: estado.recientes.isEmpty ? nil : "\(estado.recientes.count)")
-                        .tag(Seccion.recientes)
-                    FilaLateral(titulo: "Papelera", simbolo: "trash",
-                                valor: estado.papeleraBytes.map(tamano))
-                        .tag(Seccion.papelera)
-                }
+                TituloLateral(texto: "Trash")
+                FilaLateral(titulo: "Recently Moved", simbolo: "arrow.uturn.backward.circle",
+                            valor: estado.recientes.isEmpty ? nil : "\(estado.recientes.count)")
+                    .tag(Seccion.recientes)
+                FilaLateral(titulo: "Trash", simbolo: "trash",
+                            valor: estado.papeleraBytes.map(tamano))
+                    .tag(Seccion.papelera)
             }
             .navigationSplitViewColumnWidth(min: 210, ideal: 230)
         } detail: {
@@ -38,6 +37,9 @@ import SwiftUI
                 case .papelera: PapeleraView()
                 }
             }
+            // Cada pantalla ocupa todo el alto, para que la barra de abajo quede pegada al borde.
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Vidrio())
             // En las categorías la barra la pone TablaView solo bajo la tabla, para que no tape el panel de vista previa.
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if estado.escaneado && !enCategoria { BarraInferior(estado: estado) }
@@ -48,12 +50,23 @@ import SwiftUI
         .sheet(isPresented: Binding(get: { !bienvenidaVista }, set: { if !$0 { bienvenidaVista = true } })) {
             BienvenidaView().interactiveDismissDisabled()
         }
-        .alert("Listo", isPresented: Binding(get: { estado.ultimaLimpieza != nil }, set: { if !$0 { estado.ultimaLimpieza = nil } })) {
+        .alert("Kept", isPresented: Binding(get: { estado.ultimoGuardado != nil }, set: { if !$0 { estado.ultimoGuardado = nil } })) {
+            Button("Show in Finder") {
+                NSWorkspace.shared.open(estado.carpetaGuardar)
+                estado.ultimoGuardado = nil
+            }
+            Button("OK", role: .cancel) { estado.ultimoGuardado = nil }
+        } message: {
+            if let r = estado.ultimoGuardado {
+                Text(mensaje(r))
+            }
+        }
+        .alert("Done", isPresented: Binding(get: { estado.ultimaLimpieza != nil }, set: { if !$0 { estado.ultimaLimpieza = nil } })) {
             if let pendientes = estado.ultimaLimpieza?.sinPermiso, !pendientes.isEmpty {
-                Button("Mover con Finder") { estado.moverConFinder(pendientes) }
-                Button("Ahora no", role: .cancel) { estado.ultimaLimpieza = nil }
+                Button("Move with Finder") { estado.moverConFinder(pendientes) }
+                Button("Not Now", role: .cancel) { estado.ultimaLimpieza = nil }
             } else {
-                Button("Aceptar") { estado.ultimaLimpieza = nil }
+                Button("OK") { estado.ultimaLimpieza = nil }
             }
         } message: {
             if let r = estado.ultimaLimpieza {
@@ -67,13 +80,21 @@ import SwiftUI
         return false
     }
 
-    private func mensaje(_ r: ResultadoLimpieza) -> String {
-        var texto = "Se movieron \(r.movidos.count) elementos a la Papelera (\(tamano(r.bytes))). Puedes recuperarlos desde ahí."
+    private func mensaje(_ r: ResultadoGuardado) -> String {
+        var texto = "Moved \(r.guardados.count) items (\(tamano(r.bytes))) to Documents/Keep. iClear won't scan that folder, so they won't show up again."
         if !r.errores.isEmpty {
-            texto += "\n\n\(r.errores.count) no se pudieron mover:\n" + r.errores.prefix(5).joined(separator: "\n")
+            texto += "\n\n\(r.errores.count) couldn't be moved:\n" + r.errores.prefix(5).joined(separator: "\n")
+        }
+        return texto
+    }
+
+    private func mensaje(_ r: ResultadoLimpieza) -> String {
+        var texto = "Moved \(r.movidos.count) items to the Trash (\(tamano(r.bytes))). You can get them back from there."
+        if !r.errores.isEmpty {
+            texto += "\n\n\(r.errores.count) couldn't be moved:\n" + r.errores.prefix(5).joined(separator: "\n")
         }
         if !r.sinPermiso.isEmpty {
-            texto += "\n\n\(r.sinPermiso.count) son del sistema y necesitan tu contraseña. Finder puede moverlos."
+            texto += "\n\n\(r.sinPermiso.count) belong to the system and need your password. Finder can move them."
         }
         return texto
     }
@@ -87,13 +108,22 @@ import SwiftUI
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(tamano(estado.bytesSeleccionados)).font(.title3.weight(.semibold)).monospacedDigit()
-                Text("\(estado.seleccionados.count) elementos seleccionados").font(.caption).foregroundStyle(.secondary)
+                Text("\(estado.seleccionados.count) items selected").font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
             Button {
+                estado.guardar(estado.paraGuardar)
+            } label: {
+                Label("Keep", systemImage: "archivebox")
+                    .padding(.horizontal, 6)
+            }
+            .controlSize(.large)
+            .disabled(estado.paraGuardar.isEmpty)
+            .help("Move the checked files to Documents/Keep. iClear never scans that folder, so they stop showing up.")
+            Button {
                 estado.confirmando = true
             } label: {
-                Label("Mover a la Papelera", systemImage: "trash")
+                Label("Move to Trash", systemImage: "trash")
                     .padding(.horizontal, 6)
             }
             .buttonStyle(.borderedProminent)
@@ -120,5 +150,18 @@ import SwiftUI
                 Text(valor).font(.callout).monospacedDigit().foregroundStyle(.secondary)
             }
         }
+    }
+}
+
+/// Título de grupo en la barra lateral, con el aspecto de los encabezados de sección de macOS.
+@MainActor private struct TituloLateral: View {
+    let texto: String
+
+    var body: some View {
+        Text(texto)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .padding(.top, 12)
+            .selectionDisabled()
     }
 }

@@ -10,29 +10,30 @@ import SwiftUI
     var body: some View {
         Group {
             if estado.recientes.isEmpty {
-                ContentUnavailableView("Nada por restaurar", systemImage: "arrow.uturn.backward.circle",
+                ContentUnavailableView("Nothing to Restore", systemImage: "arrow.uturn.backward.circle",
                                        description: Text(estado.accesoCompleto == false
-                                           ? "Para ver lo que se puede restaurar, iClear necesita acceso total al disco."
-                                           : "Aquí aparece lo que iClear mueva a la Papelera, mientras siga ahí."))
+                                           ? "To see what can be restored, iClear needs Full Disk Access."
+                                           : "Items iClear moves to the Trash show up here while they are still there."))
             } else {
                 List(estado.recientes) { m in
                     Fila(movimiento: m) { restaurar([m]) }
                 }
+                .scrollContentBackground(.hidden)
             }
         }
-        .navigationTitle("Movido recientemente")
-        .navigationSubtitle("Lo que iClear movió y sigue en la Papelera")
+        .navigationTitle("Recently Moved")
+        .navigationSubtitle("What iClear moved that is still in the Trash")
         .toolbar {
             Button {
                 restaurar(estado.recientes)
             } label: {
-                Label("Restaurar todo", systemImage: "arrow.uturn.backward")
+                Label("Restore All", systemImage: "arrow.uturn.backward")
             }
             .disabled(estado.recientes.isEmpty || restaurando)
         }
         .onAppear { estado.cargarRecientes() }
-        .alert("No se pudo restaurar todo", isPresented: Binding(get: { !errores.isEmpty }, set: { if !$0 { errores = [] } })) {
-            Button("Aceptar") { errores = [] }
+        .alert("Some Items Couldn't Be Restored", isPresented: Binding(get: { !errores.isEmpty }, set: { if !$0 { errores = [] } })) {
+            Button("OK") { errores = [] }
         } message: {
             Text(errores.prefix(8).joined(separator: "\n"))
         }
@@ -64,7 +65,7 @@ private struct Fila: View {
                 if movimiento.bytes > 0 { Text(tamano(movimiento.bytes)).monospacedDigit() }
                 Text(movimiento.fecha, format: .relative(presentation: .named)).font(.caption).foregroundStyle(.secondary)
             }
-            Button("Restaurar", action: restaurar)
+            Button("Restore", action: restaurar)
         }
         .padding(.vertical, 4)
     }

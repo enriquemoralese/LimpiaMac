@@ -15,14 +15,14 @@ import SwiftUI
                 if estado.escaneando {
                     VStack(spacing: 8) {
                         Text(estado.progreso).font(.callout).foregroundStyle(.secondary).lineLimit(1)
-                        Button("Detener") { estado.cancelar() }.buttonStyle(.link)
+                        Button("Stop") { estado.cancelar() }.buttonStyle(.link)
                     }
                     .frame(height: 80)
                 } else {
                     Button {
                         estado.escanear()
                     } label: {
-                        Text(estado.escaneado ? "Escanear de nuevo" : "Escanear")
+                        Text(estado.escaneado ? "Scan Again" : "Scan")
                             .frame(minWidth: 140)
                     }
                     .buttonStyle(.borderedProminent)
@@ -43,7 +43,7 @@ import SwiftUI
                 .frame(maxWidth: 680)
 
                 if !estado.errores.isEmpty {
-                    DisclosureGroup("\(estado.errores.count) rutas no se pudieron leer") {
+                    DisclosureGroup("\(estado.errores.count) paths couldn't be read") {
                         Text(estado.errores.prefix(200).joined(separator: "\n"))
                             .font(.caption.monospaced())
                             .foregroundStyle(.secondary)
@@ -57,7 +57,7 @@ import SwiftUI
             .padding(.bottom, 32)
             .frame(maxWidth: .infinity)
         }
-        .navigationTitle("Resumen")
+        .navigationTitle("Overview")
     }
 
     // MARK: - Anillo del disco
@@ -72,9 +72,9 @@ import SwiftUI
         if let disco {
             let seleccionado = min(estado.bytesSeleccionados, disco.total - disco.libre)
             let partes: [(String, Int64, Color)] = [
-                ("Usado", disco.total - disco.libre - seleccionado, .accentColor),
-                ("Por liberar", seleccionado, .orange),
-                ("Disponible", disco.libre, Color.secondary.opacity(0.18)),
+                ("Used", disco.total - disco.libre - seleccionado, .accentColor),
+                ("To free", seleccionado, .orange),
+                ("Available", disco.libre, Color.secondary.opacity(0.18)),
             ]
             Chart(partes, id: \.0) { parte in
                 SectorMark(angle: .value("Bytes", parte.1), innerRadius: .ratio(0.78), angularInset: 1.2)
@@ -85,7 +85,7 @@ import SwiftUI
             .overlay {
                 VStack(spacing: 2) {
                     Text(tamano(disco.libre)).font(.system(size: 28, weight: .semibold, design: .rounded)).monospacedDigit()
-                    Text("disponibles").font(.callout).foregroundStyle(.secondary)
+                    Text("available").font(.callout).foregroundStyle(.secondary)
                     if seleccionado > 0 {
                         Text("+\(tamano(seleccionado))").font(.callout.weight(.medium)).foregroundStyle(.orange)
                     }
@@ -101,10 +101,10 @@ import SwiftUI
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "lock.shield").font(.title2).foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 6) {
-                Text("Falta el acceso completo al disco").font(.headline)
-                Text("Sin él, macOS esconde algunas carpetas y el escaneo sale incompleto. Agrega iClear en Privacidad y seguridad › Acceso total al disco y vuelve a abrir la app.")
+                Text("Full Disk Access is missing").font(.headline)
+                Text("Without it, macOS hides some folders and the scan is incomplete. Add iClear in Privacy & Security › Full Disk Access and reopen the app.")
                     .font(.callout).foregroundStyle(.secondary)
-                Button("Abrir Ajustes del Sistema") {
+                Button("Open System Settings") {
                     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
                 }
                 .buttonStyle(.link)
@@ -133,9 +133,9 @@ import SwiftUI
                 Text(categoria.titulo).font(.headline)
                 Group {
                     switch fase {
-                    case .vacia: Text("Sin escanear")
-                    case .cargando: Text("00 elementos").redacted(reason: .placeholder)
-                    case .lista: Text(cantidad == 0 ? "Nada que revisar" : "\(cantidad) elementos")
+                    case .vacia: Text("Not scanned")
+                    case .cargando: Text("00 items").redacted(reason: .placeholder)
+                    case .lista: Text(cantidad == 0 ? "Nothing to review" : "\(cantidad) items")
                     }
                 }
                 .font(.caption).foregroundStyle(.secondary)
@@ -155,8 +155,7 @@ import SwiftUI
         .onChange(of: fase) { pulso = fase == .cargando }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.separator.opacity(encima ? 1 : 0.4)))
+        .tarjetaDeVidrio(radio: 14, resaltada: encima)
         .scaleEffect(encima ? 1.015 : 1)
         .animation(.smooth(duration: 0.15), value: encima)
         .onHover { encima = $0 }

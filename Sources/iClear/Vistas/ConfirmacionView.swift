@@ -15,8 +15,8 @@ import SwiftUI
             HStack(spacing: 14) {
                 Image(systemName: "trash.circle.fill").font(.system(size: 44)).foregroundStyle(Color.accentColor)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("¿Mover \(elegidos.count) elementos a la Papelera?").font(.title3.weight(.semibold))
-                    Text("Liberarás \(tamano(estado.bytesSeleccionados)) al vaciar la Papelera. Hasta entonces puedes recuperarlos.")
+                    Text("Move \(elegidos.count) items to the Trash?").font(.title3.weight(.semibold))
+                    Text("You'll free \(tamano(estado.bytesSeleccionados)) when you empty the Trash. Until then you can get them back.")
                         .font(.callout).foregroundStyle(.secondary)
                 }
             }
@@ -40,11 +40,11 @@ import SwiftUI
             let abiertas = estado.abiertas(elegidos)
             if !abiertas.isEmpty {
                 HStack(alignment: .firstTextBaseline) {
-                    Label("Abiertas ahora: \(abiertas.compactMap(\.localizedName).joined(separator: ", ")). Ciérralas antes de moverlas.",
+                    Label("Open now: \(abiertas.compactMap(\.localizedName).joined(separator: ", ")). Quit them before moving them.",
                           systemImage: "exclamationmark.triangle.fill")
                         .font(.callout).foregroundStyle(.orange)
                     Spacer()
-                    Button("Cerrar apps") {
+                    Button("Quit Apps") {
                         abiertas.forEach { $0.terminate() }
                         // macOS no avisa a la vista cuando una app se cierra: se vuelve a revisar al momento.
                         Task { try? await Task.sleep(for: .seconds(1.5)); revisarDeNuevo += 1 }
@@ -54,13 +54,13 @@ import SwiftUI
 
             let restos = elegidos.reduce(0) { $0 + $1.extras.count }
             if restos > 0 {
-                Label("Incluye \(restos) restos de apps en la Librería (cachés, preferencias, datos).", systemImage: "app.dashed")
+                Label("Includes \(restos) app leftovers in Library (caches, preferences, data).", systemImage: "app.dashed")
                     .font(.callout).foregroundStyle(.secondary)
             }
 
             if !sensibles.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("\(sensibles.count) con nombre sensible", systemImage: "lock.fill")
+                    Label("\(sensibles.count) with sensitive names", systemImage: "lock.fill")
                         .font(.headline).foregroundStyle(.orange)
                     ScrollView {
                         VStack(alignment: .leading, spacing: 3) {
@@ -72,7 +72,7 @@ import SwiftUI
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .frame(maxHeight: 120)
-                    Toggle("Revisé estos archivos y sí quiero moverlos", isOn: $revisados)
+                    Toggle("I reviewed these files and want to move them", isOn: $revisados)
                 }
                 .padding(12)
                 .background(.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
@@ -80,9 +80,9 @@ import SwiftUI
 
             HStack {
                 Spacer()
-                Button("Cancelar", role: .cancel) { cerrar() }
+                Button("Cancel", role: .cancel) { cerrar() }
                     .keyboardShortcut(.cancelAction)
-                Button("Mover a la Papelera") {
+                Button("Move to Trash") {
                     estado.limpiar()
                     cerrar()
                 }

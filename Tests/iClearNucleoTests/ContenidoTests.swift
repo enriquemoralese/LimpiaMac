@@ -89,7 +89,7 @@ final class ContenidoTests: XCTestCase {
         let h = try XCTUnwrap(r.hallazgos.first { $0.nombre == "scan001.png" })
         XCTAssertFalse(Reglas.esSensible(destino), "El nombre no lo delata")
         XCTAssertTrue(h.sensible)
-        XCTAssertEqual(h.nota, "Su contenido parece un documento sensible")
+        XCTAssertEqual(h.nota, "Its contents look like a sensitive document")
     }
 }
 

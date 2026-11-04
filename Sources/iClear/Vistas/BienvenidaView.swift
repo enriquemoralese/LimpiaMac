@@ -11,31 +11,31 @@ import SwiftUI
             HStack(spacing: 14) {
                 Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 56, height: 56)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Bienvenido a iClear").font(.title2.weight(.semibold))
-                    Text("Encuentra lo que ocupa espacio sin servir.").foregroundStyle(.secondary)
+                    Text("Welcome to iClear").font(.title2.weight(.semibold))
+                    Text("Find what takes up space for nothing.").foregroundStyle(.secondary)
                 }
             }
 
             VStack(alignment: .leading, spacing: 10) {
-                Punto(simbolo: "eye", texto: "El escaneo solo mira. No mueve ni borra nada.")
-                Punto(simbolo: "hand.tap", texto: "Tú eliges qué mandar a la Papelera, y puedes restaurarlo.")
-                Punto(simbolo: "lock", texto: "Lo que parece sensible (INE, estados de cuenta, contraseñas) lleva candado y nunca llega marcado.")
+                Punto(simbolo: "eye", texto: "Scanning only looks. It never moves or deletes anything.")
+                Punto(simbolo: "hand.tap", texto: "You choose what goes to the Trash, and you can restore it.")
+                Punto(simbolo: "lock", texto: "Anything that looks sensitive (IDs, bank statements, passwords) gets a lock and is never checked for you.")
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("¿Qué no debe tocar nunca?").font(.headline)
-                Text("Agrega tus documentos importantes, proyectos o cualquier carpeta que quieras proteger. Puedes cambiarlo después en Ajustes.")
+                Text("What should it never touch?").font(.headline)
+                Text("Add your important documents, projects, or any folder you want to protect. You can change this later in Settings.")
                     .font(.callout).foregroundStyle(.secondary)
                 Form { CarpetasPropias() }
                     .formStyle(.grouped)
                     .frame(height: 150)
-                Text("iClear ya protege de fábrica tus llaves (.ssh, .gnupg) y las configuraciones de tus apps.")
+                Text("iClear already protects your keys (.ssh, .gnupg) and your app settings out of the box.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
             HStack {
                 Spacer()
-                Button("Empezar") { vista = true }
+                Button("Get Started") { vista = true }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)

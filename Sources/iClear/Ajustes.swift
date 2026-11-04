@@ -22,31 +22,13 @@ enum Ajustes {
         return c
     }
 
-    /// La app se llamaba LimpiaMac (identificador local.enrique.LimpiaMac). Una sola vez copia
-    /// sus ajustes y mueve su historial al nombre nuevo. Devuelve los errores para mostrarlos.
-    static func migrarNombreAnterior() -> [String] {
+    /// Agrega una ruta a las carpetas protegidas, si no estaba.
+    static func proteger(_ url: URL) {
         let d = UserDefaults.standard
-        let marca = "migradoDeLimpiaMac"
-        guard !d.bool(forKey: marca) else { return [] }
-        var errores: [String] = []
-        if let anterior = UserDefaults(suiteName: "local.enrique.LimpiaMac") {
-            for clave in [claveUmbral, claveViejos, claveDormidos, claveProtegidas] where d.object(forKey: clave) == nil {
-                if let valor = anterior.object(forKey: clave) { d.set(valor, forKey: clave) }
-            }
-        }
-        let soporte = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support")
-        let viejo = soporte.appendingPathComponent("LimpiaMac/historial.json")
-        let nuevo = Papelera.historialPorDefecto
-        if FileManager.default.fileExists(atPath: viejo.path) && !FileManager.default.fileExists(atPath: nuevo.path) {
-            do {
-                try FileManager.default.createDirectory(at: nuevo.deletingLastPathComponent(), withIntermediateDirectories: true)
-                try FileManager.default.moveItem(at: viejo, to: nuevo)
-            } catch {
-                errores.append("No se pudo mover el historial de LimpiaMac: \(error.localizedDescription)")
-            }
-        }
-        d.set(true, forKey: marca)
-        return errores
+        var lista = (d.string(forKey: claveProtegidas) ?? "").split(separator: "\n").map(String.init)
+        guard !lista.contains(url.path) else { return }
+        lista.append(url.path)
+        d.set(lista.joined(separator: "\n"), forKey: claveProtegidas)
     }
 
     static var protegidas: [URL] {
@@ -64,31 +46,31 @@ enum Ajustes {
 
     var body: some View {
         Form {
-            Section("Criterios") {
-                Stepper("Archivo grande desde \(tamano(Int64(umbralMB) * 1_000_000))", value: $umbralMB, in: 100...20_000, step: 100)
-                Stepper("Viejo después de \(mesesViejos) meses sin abrir", value: $mesesViejos, in: 3...120)
-                Stepper("Proyecto dormido después de \(mesesDormidos) meses sin cambios", value: $mesesDormidos, in: 6...120)
+            Section("Criteria") {
+                Stepper("Large file from \(tamano(Int64(umbralMB) * 1_000_000))", value: $umbralMB, in: 100...20_000, step: 100)
+                Stepper("Old after \(mesesViejos) months unopened", value: $mesesViejos, in: 3...120)
+                Stepper("Old folder after \(mesesDormidos) months unchanged", value: $mesesDormidos, in: 6...120)
             }
             Section {
                 ForEach(Reglas.intocablesFijos, id: \.self) { ruta in
                     Label("~/" + ruta, systemImage: "lock.fill").foregroundStyle(.secondary)
                 }
                 Toggle(isOn: $protegerFL) {
-                    Text("Proteger FL Studio")
-                    Text("Proyectos .flp, los samples que usan y las apps de FL Studio.")
+                    Text("Protect FL Studio")
+                    Text(".flp projects, the samples they use, and the FL Studio apps.")
                 }
                 if protegerFL {
                     ForEach(estado.enUsoFL, id: \.self) { url in
                         Label(url.path.replacingOccurrences(of: NSHomeDirectory(), with: "~"), systemImage: "waveform")
                             .foregroundStyle(.secondary)
-                            .help("FL Studio usa samples de aquí")
+                            .help("FL Studio uses samples from here")
                     }
                 }
                 CarpetasPropias()
             } header: {
-                Text("Carpetas protegidas")
+                Text("Protected folders")
             } footer: {
-                Text("La app nunca revisa ni mueve nada dentro de estas carpetas. Con FL Studio protegido, las carpetas con onda las detecta en tus proyectos y en su navegador de sonidos.")
+                Text("iClear never scans or moves anything inside these folders. With FL Studio protected, the folders with a wave are detected from your projects and its sound browser.")
                     .foregroundStyle(.secondary)
             }
         }
@@ -109,13 +91,13 @@ enum Ajustes {
                 Label(ruta.replacingOccurrences(of: NSHomeDirectory(), with: "~"), systemImage: "lock")
                     .lineLimit(1).truncationMode(.middle)
                 Spacer()
-                Button("Quitar", role: .destructive) {
+                Button("Remove", role: .destructive) {
                     protegidas = lista.filter { $0 != ruta }.joined(separator: "\n")
                 }
                 .buttonStyle(.borderless)
             }
         }
-        Button("Agregar carpeta o archivo…", action: agregar)
+        Button("Add Folder or File…", action: agregar)
     }
 
     private func agregar() {
@@ -123,7 +105,7 @@ enum Ajustes {
         panel.canChooseDirectories = true
         panel.canChooseFiles = true
         panel.allowsMultipleSelection = true
-        panel.prompt = "Proteger"
+        panel.prompt = "Protect"
         guard panel.runModal() == .OK else { return }
         let nuevas = panel.urls.map(\.path).filter { !lista.contains($0) }
         protegidas = (lista + nuevas).joined(separator: "\n")

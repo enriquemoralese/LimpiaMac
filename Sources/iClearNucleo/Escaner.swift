@@ -53,20 +53,25 @@ public struct Escaner: Sendable {
         var errores: [String] = []
         var hallazgos: [Hallazgo] = []
 
-        progreso("Revisando cachés y registros")
+        progreso("Checking caches and logs")
         hallazgos += try basura(errores: &errores)
 
         let (archivos, carpetasFL, raices) = try recorrer(progreso: progreso, errores: &errores)
         let visibles = archivos.filter { a in !carpetasFL.contains { a.url.path.hasPrefix($0 + "/") } }
 
-        progreso("Clasificando \(visibles.count) archivos")
-        hallazgos += try porArchivo(visibles)
-        hallazgos += dormidos(visibles, carpetasFL: carpetasFL, raices: raices)
+        progreso("Sorting \(visibles.count) files")
+        let carpetas = dormidos(visibles, carpetasFL: carpetasFL, raices: raices)
+        // Lo que vive dentro de una carpeta dormida se mueve con ella: no se repite suelto en la misma lista.
+        let dentro = carpetas.map { $0.url.path + "/" }
+        hallazgos += try porArchivo(visibles).filter { h in
+            h.categoria != .viejos || !dentro.contains { h.url.path.hasPrefix($0) }
+        }
+        hallazgos += carpetas
 
-        progreso("Buscando duplicados")
+        progreso("Looking for duplicates")
         hallazgos += try duplicados(visibles, errores: &errores)
 
-        progreso("Revisando aplicaciones")
+        progreso("Checking apps")
         hallazgos += try aplicaciones(errores: &errores)
 
         if config.revisarContenido {
@@ -132,7 +137,7 @@ public struct Escaner: Sendable {
         let fallas = Fallas()
 
         for raiz in raices {
-            progreso("Recorriendo \(raiz.lastPathComponent)")
+            progreso("Scanning \(raiz.lastPathComponent)")
             let v: URLResourceValues
             do { v = try raiz.resourceValues(forKeys: Set(Self.claves)) } catch {
                 errores.append("\(raiz.path): \(error.localizedDescription)")
@@ -150,7 +155,7 @@ public struct Escaner: Sendable {
                                             options: [.skipsHiddenFiles, .skipsPackageDescendants],
                                             errorHandler: { url, error in fallas.agregar("\(url.path): \(error.localizedDescription)"); return true })
                 else {
-                    errores.append("\(raiz.path): no se pudo recorrer")
+                    errores.append("\(raiz.path): couldn't be scanned")
                     continue
                 }
                 var contador = 0
@@ -158,7 +163,7 @@ public struct Escaner: Sendable {
                     contador += 1
                     if contador % 1000 == 0 {
                         try Task.checkCancellation()
-                        progreso("Recorriendo \(raiz.lastPathComponent) · \(archivos.count) archivos")
+                        progreso("Scanning \(raiz.lastPathComponent) · \(archivos.count) files")
                     }
                     let v: URLResourceValues
                     do { v = try url.resourceValues(forKeys: Set(Self.claves)) } catch {
@@ -289,9 +294,9 @@ public struct Escaner: Sendable {
                 if candidatas[padre] != nil { return nil }
                 padre = (padre as NSString).deletingLastPathComponent
             }
-            var nota = "\(s.archivos) archivos"
-            if s.sensibles > 0 { nota += " · \(s.sensibles) con nombre sensible" }
-            return Hallazgo(url: URL(fileURLWithPath: ruta, isDirectory: true), categoria: .dormidos, bytes: s.bytes,
+            var nota = "\(s.archivos) files"
+            if s.sensibles > 0 { nota += " · \(s.sensibles) with sensitive names" }
+            return Hallazgo(url: URL(fileURLWithPath: ruta, isDirectory: true), categoria: .viejos, bytes: s.bytes,
                             fecha: s.reciente, tipoFecha: .modificacion, sensible: s.sensibles > 0, nota: nota)
         }
     }
@@ -316,7 +321,7 @@ public struct Escaner: Sendable {
                 for copia in ordenados.dropFirst() where copia.bytes >= config.minimoDuplicados {
                     hallazgos.append(Hallazgo(url: copia.url, categoria: .duplicados, bytes: copia.bytes, fecha: copia.creado,
                                               tipoFecha: .modificacion, sensible: copia.sensible,
-                                              nota: "Igual a \(rutaOriginal)"))
+                                              nota: "Same as \(rutaOriginal)"))
                 }
             }
         }
@@ -325,9 +330,9 @@ public struct Escaner: Sendable {
 
     /// Solo revisa archivos que ya salieron como hallazgo: leer todas las fotos de la Mac tardaría demasiado.
     func marcarContenidoSensible(_ hallazgos: [Hallazgo], progreso: @Sendable (String) -> Void) throws -> [Hallazgo] {
-        let revisar = Set(hallazgos.filter { !$0.sensible && $0.categoria != .dormidos && $0.categoria != .aplicaciones
+        let revisar = Set(hallazgos.filter { !$0.sensible && !$0.url.hasDirectoryPath && $0.categoria != .aplicaciones
             && Contenido.puedeRevisar($0.url) }.map(\.url))
-        progreso("Revisando el contenido de \(revisar.count) documentos")
+        progreso("Checking the contents of \(revisar.count) documents")
         // Reconocer texto es lento: se reparte entre todos los núcleos.
         let lista = Array(revisar)
         let marcas = Marcas(cantidad: lista.count)
@@ -339,7 +344,7 @@ public struct Escaner: Sendable {
         let sensibles = Set(marcas.indices.map { lista[$0] })
         return hallazgos.map { h in
             guard sensibles.contains(h.url) else { return h }
-            let nota = [h.nota, "Su contenido parece un documento sensible"].compactMap { $0 }.joined(separator: " · ")
+            let nota = [h.nota, "Its contents look like a sensitive document"].compactMap { $0 }.joined(separator: " · ")
             return Hallazgo(url: h.url, categoria: h.categoria, bytes: h.bytes, fecha: h.fecha, tipoFecha: h.tipoFecha,
                             sensible: true, nota: nota, extras: h.extras)
         }
@@ -363,7 +368,7 @@ public struct Escaner: Sendable {
     public static func ocupado(_ url: URL, errores: inout [String]) -> Int64 {
         let claves: Set<URLResourceKey> = [.totalFileAllocatedSizeKey, .isDirectoryKey]
         guard let v = try? url.resourceValues(forKeys: claves) else {
-            errores.append("\(url.path): no se pudo leer")
+            errores.append("\(url.path): couldn't be read")
             return 0
         }
         guard v.isDirectory == true else {

@@ -1,31 +1,29 @@
 import Foundation
 
 public enum Categoria: String, CaseIterable, Identifiable, Hashable, Sendable {
-    case basura, instaladores, grandes, viejos, dormidos, duplicados, aplicaciones
+    case basura, instaladores, grandes, viejos, duplicados, aplicaciones
 
     public var id: String { rawValue }
 
     public var titulo: String {
         switch self {
-        case .basura: "Basura del sistema"
-        case .instaladores: "Instaladores"
-        case .grandes: "Archivos grandes"
-        case .viejos: "Viejos o sin abrir"
-        case .dormidos: "Proyectos dormidos"
-        case .duplicados: "Duplicados"
-        case .aplicaciones: "Aplicaciones"
+        case .basura: "System Junk"
+        case .instaladores: "Installers"
+        case .grandes: "Large Files"
+        case .viejos: "Old or Unopened"
+        case .duplicados: "Duplicates"
+        case .aplicaciones: "Applications"
         }
     }
 
     public var descripcion: String {
         switch self {
-        case .basura: "Cachés y registros que las apps vuelven a crear cuando los necesitan."
-        case .instaladores: "Archivos .dmg y .pkg en Descargas que ya cumplieron su función."
-        case .grandes: "Los archivos que más espacio ocupan, empezando por los videos."
-        case .viejos: "Archivos que no se abren desde hace tiempo."
-        case .dormidos: "Carpetas completas sin cambios desde hace mucho, como semestres o proyectos cerrados."
-        case .duplicados: "Copias idénticas por contenido. Se conserva la más antigua."
-        case .aplicaciones: "Apps instaladas con sus restos en la Librería. Se mueven juntos a la Papelera."
+        case .basura: "Caches and logs that apps recreate when they need them."
+        case .instaladores: ".dmg and .pkg files in Downloads that have done their job."
+        case .grandes: "The files that take up the most space, starting with videos."
+        case .viejos: "Files you haven't opened in a while and whole folders left unchanged, like past semesters or finished projects."
+        case .duplicados: "Copies with identical content. The oldest one is kept."
+        case .aplicaciones: "Installed apps with their leftovers in Library. They go to the Trash together."
         }
     }
 
@@ -35,7 +33,6 @@ public enum Categoria: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .instaladores: "shippingbox"
         case .grandes: "film.stack"
         case .viejos: "clock.arrow.circlepath"
-        case .dormidos: "moon.zzz"
         case .duplicados: "doc.on.doc"
         case .aplicaciones: "app.dashed"
         }
@@ -54,9 +51,9 @@ public enum TipoFecha: Sendable, Hashable {
 
     public var etiqueta: String {
         switch self {
-        case .apertura: "Última apertura"
-        case .estimada: "Sin registro de apertura"
-        case .modificacion: "Última modificación"
+        case .apertura: "Last opened"
+        case .estimada: "No open record"
+        case .modificacion: "Last modified"
         }
     }
 }

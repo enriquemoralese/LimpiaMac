@@ -101,7 +101,7 @@ import UniformTypeIdentifiers
                     .frame(minHeight: 200)
                     .padding(.top, 8)
                     .onTapGesture(count: 2) { vistaRapida(h.url) }
-                    .help("Doble clic para abrir la vista rápida")
+                    .help("Double-click to open Quick Look")
 
                 VStack(alignment: .leading, spacing: 16) {
 
@@ -120,12 +120,12 @@ import UniformTypeIdentifiers
                         }
                         if let nota = h.nota {
                             GridRow {
-                                Text("Nota").foregroundStyle(.secondary)
+                                Text("Note").foregroundStyle(.secondary)
                                 Text(nota)
                             }
                         }
                         GridRow {
-                            Text("Ubicación").foregroundStyle(.secondary)
+                            Text("Location").foregroundStyle(.secondary)
                             Text(h.url.deletingLastPathComponent().path.replacingOccurrences(of: NSHomeDirectory(), with: "~"))
                                 .textSelection(.enabled)
                         }
@@ -135,10 +135,10 @@ import UniformTypeIdentifiers
                     let _ = revisarDeNuevo
                     if let app = estado.abiertas([h]).first {
                         HStack {
-                            Label("Está abierta. Ciérrala antes de moverla.", systemImage: "exclamationmark.triangle.fill")
+                            Label("It's open. Quit it before moving it.", systemImage: "exclamationmark.triangle.fill")
                                 .font(.callout).foregroundStyle(.orange)
                             Spacer()
-                            Button("Cerrar") {
+                            Button("Quit") {
                                 app.terminate()
                                 Task { try? await Task.sleep(for: .seconds(1.5)); revisarDeNuevo += 1 }
                             }
@@ -146,7 +146,7 @@ import UniformTypeIdentifiers
                     }
 
                     if !h.extras.isEmpty {
-                        DisclosureGroup("También se moverán \(h.extras.count) restos") {
+                        DisclosureGroup("\(h.extras.count) leftovers will also be moved") {
                             VStack(alignment: .leading, spacing: 3) {
                                 ForEach(h.extras, id: \.self) { url in
                                     Text(url.path.replacingOccurrences(of: NSHomeDirectory(), with: "~"))
@@ -160,16 +160,16 @@ import UniformTypeIdentifiers
                     }
 
                     if h.sensible {
-                        Label("El nombre parece de un documento sensible. Revísalo antes de moverlo.", systemImage: "lock")
+                        Label("The name looks like a sensitive document. Review it before moving it.", systemImage: "lock")
                             .font(.callout).foregroundStyle(.orange)
                     }
 
                     let marcado = estado.seleccion.contains(h.id)
-                    Toggle("Mover a la Papelera", isOn: Binding(get: { marcado }, set: { estado.marcar([h.id], $0) }))
+                    Toggle("Move to Trash", isOn: Binding(get: { marcado }, set: { estado.marcar([h.id], $0) }))
 
                     HStack {
-                        Button("Vista rápida") { vistaRapida(h.url) }
-                        Button("Mostrar en Finder") { NSWorkspace.shared.activateFileViewerSelecting([h.url]) }
+                        Button("Quick Look") { vistaRapida(h.url) }
+                        Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([h.url]) }
                     }
                 }
                 .fixedSize(horizontal: false, vertical: true)
@@ -178,8 +178,8 @@ import UniformTypeIdentifiers
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
             }
         } else {
-            ContentUnavailableView("Sin selección", systemImage: "eye",
-                                   description: Text("Haz clic en una fila para ver su vista previa."))
+            ContentUnavailableView("No Selection", systemImage: "eye",
+                                   description: Text("Click a row to see its preview."))
         }
     }
 }
@@ -214,7 +214,7 @@ import UniformTypeIdentifiers
                             .environment(\.colorScheme, .dark)
                     }
                     .buttonStyle(.plain)
-                    .help("Reproducir aquí")
+                    .help("Play here")
                 }
         }
     }

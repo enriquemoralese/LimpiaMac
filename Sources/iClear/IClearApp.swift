@@ -10,6 +10,8 @@ import SwiftUI
         WindowGroup("iClear") {
             Principal()
                 .environment(estado)
+                // Fechas y meses en inglés aunque la Mac esté en español.
+                .environment(\.locale, Locale(identifier: "en_US"))
                 .frame(minWidth: 980, minHeight: 620)
         }
         .windowToolbarStyle(.unified)
@@ -20,6 +22,7 @@ import SwiftUI
         Settings {
             AjustesView()
                 .environment(estado)
+                .environment(\.locale, Locale(identifier: "en_US"))
         }
     }
 }

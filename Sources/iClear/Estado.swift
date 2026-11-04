@@ -26,6 +26,7 @@ final class Estado {
     var progreso = ""
     var papeleraBytes: Int64?
     var ultimaLimpieza: ResultadoLimpieza?
+    var ultimoGuardado: ResultadoGuardado?
     var accesoCompleto: Bool?
 
     private var tarea: Task<Void, Never>?
@@ -37,7 +38,6 @@ final class Estado {
     var reglas: Reglas { Reglas(inicio: inicio, extras: Ajustes.protegidas + enUsoFL, protegerFL: Ajustes.protegerFL) }
 
     init() {
-        errores = Ajustes.migrarNombreAnterior()
         accesoCompleto = Papelera.tieneAccesoCompleto(inicio: inicio)
         medirPapelera()
         cargarRecientes()
@@ -53,7 +53,7 @@ final class Estado {
     func escanear() {
         tarea?.cancel()
         escaneando = true
-        progreso = "Preparando"
+        progreso = "Preparing"
         errores = []
         let inicio = inicio
         let extras = Ajustes.protegidas
@@ -64,7 +64,7 @@ final class Estado {
                 let avisar: @Sendable (String) -> Void = { texto in Task { @MainActor in self.progreso = texto } }
                 var fl: [URL] = []
                 if protegerFL {
-                    avisar("Buscando los samples que usa FL Studio")
+                    avisar("Finding the samples FL Studio uses")
                     fl = FLStudio.carpetasEnUso(inicio: inicio).sorted { $0.path < $1.path }
                 }
                 let escaner = Escaner(reglas: Reglas(inicio: inicio, extras: extras + fl, protegerFL: protegerFL), config: config)
@@ -85,7 +85,7 @@ final class Estado {
             case .failure(is CancellationError):
                 break
             case .failure(let error):
-                errores = ["El escaneo se detuvo: \(error.localizedDescription)"]
+                errores = ["The scan stopped: \(error.localizedDescription)"]
             }
             escaneando = false
             accesoCompleto = Papelera.tieneAccesoCompleto(inicio: inicio)
@@ -116,9 +116,7 @@ final class Estado {
         let reglas = reglas
         Task {
             let r = await Task.detached { Papelera.mover(elegidos, reglas: reglas) }.value
-            let movidas = r.movidos.map(\.original)
-            hallazgos.removeAll { h in movidas.contains { h.url.path == $0 || h.url.path.hasPrefix($0 + "/") } }
-            seleccion = seleccion.intersection(hallazgos.map(\.id))
+            quitar(r.movidos.map(\.original))
             ultimaLimpieza = r
             medirPapelera()
             cargarRecientes()
@@ -135,15 +133,38 @@ final class Estado {
                 r.movidos = movidas.map { Movimiento(original: $0.key.path, enPapelera: $0.value.path, bytes: bytes[$0.key] ?? 0, fecha: Date()) }
                 if let error, movidas.count < urls.count { r.errores.append(error.localizedDescription) }
                 do { try Papelera.anotarMovidos(r.movidos) } catch {
-                    r.errores.append("No se pudo guardar el historial: \(error.localizedDescription)")
+                    r.errores.append("Couldn't save the history: \(error.localizedDescription)")
                 }
-                let rutas = r.movidos.map(\.original)
-                self.hallazgos.removeAll { h in rutas.contains { h.url.path == $0 || h.url.path.hasPrefix($0 + "/") } }
-                self.seleccion = self.seleccion.intersection(self.hallazgos.map(\.id))
+                self.quitar(r.movidos.map(\.original))
                 self.ultimaLimpieza = r
                 self.medirPapelera()
                 self.cargarRecientes()
             }
+        }
+    }
+
+    /// Quita de la lista lo que ya se movió (y lo que iba dentro), con su selección.
+    private func quitar(_ rutas: [String]) {
+        hallazgos.removeAll { h in rutas.contains { h.url.path == $0 || h.url.path.hasPrefix($0 + "/") } }
+        seleccion = seleccion.intersection(hallazgos.map(\.id))
+    }
+
+    // MARK: - Guardar
+
+    var carpetaGuardar: URL { Guardar.carpetaPorDefecto(inicio: inicio) }
+
+    /// Lo marcado que se puede guardar: todo menos apps y basura del sistema.
+    var paraGuardar: [Hallazgo] { seleccionados.filter(Guardar.sePuedeGuardar) }
+
+    func guardar(_ lista: [Hallazgo]) {
+        let carpeta = carpetaGuardar
+        let reglas = reglas
+        Task {
+            let r = await Task.detached { Guardar.mover(lista, a: carpeta, reglas: reglas) }.value
+            // Se protege desde el primer uso, para que lo guardado no vuelva a salir en el escaneo.
+            if FileManager.default.fileExists(atPath: carpeta.path) { Ajustes.proteger(carpeta) }
+            quitar(r.guardados)
+            ultimoGuardado = r
         }
     }
 
@@ -160,7 +181,7 @@ final class Estado {
             let r = await Task.detached { Result { try Papelera.restaurables() } }.value
             switch r {
             case .success(let lista): recientes = lista
-            case .failure(let error): errores.append("No se pudo leer el historial: \(error.localizedDescription)")
+            case .failure(let error): errores.append("Couldn't read the history: \(error.localizedDescription)")
             }
         }
     }
@@ -201,5 +222,5 @@ final class Estado {
 }
 
 func tamano(_ bytes: Int64) -> String {
-    ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+    textoTamano(bytes)
 }

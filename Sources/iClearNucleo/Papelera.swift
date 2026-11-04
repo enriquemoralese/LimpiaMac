@@ -70,7 +70,7 @@ public enum Papelera {
                 if i > 0 && !FileManager.default.fileExists(atPath: url.path) { continue }
                 // Segunda revisión por si las reglas cambiaron entre el escaneo y la limpieza.
                 if reglas.esIntocable(url) {
-                    resultado.errores.append("\(url.path): está protegida, no se movió")
+                    resultado.errores.append("\(url.path): it's protected, not moved")
                     if i == 0 { break } else { continue }
                 }
                 do {
@@ -88,7 +88,7 @@ public enum Papelera {
         }
         if !resultado.movidos.isEmpty {
             do { try anotar(resultado.movidos, en: historial) } catch {
-                resultado.errores.append("No se pudo guardar el historial: \(error.localizedDescription)")
+                resultado.errores.append("Couldn't save the history: \(error.localizedDescription)")
             }
         }
         return resultado
@@ -142,8 +142,8 @@ public enum Papelera {
         case yaNoEstaEnLaPapelera, yaExisteElOriginal(String)
         public var errorDescription: String? {
             switch self {
-            case .yaNoEstaEnLaPapelera: "Ya no está en la Papelera."
-            case .yaExisteElOriginal(let ruta): "Ya hay algo con ese nombre en \(ruta)."
+            case .yaNoEstaEnLaPapelera: "It's no longer in the Trash."
+            case .yaExisteElOriginal(let ruta): "Something with that name already exists in \(ruta)."
             }
         }
     }
@@ -184,7 +184,7 @@ extension Papelera {
         do {
             elementos = try FileManager.default.contentsOfDirectory(at: papelera, includingPropertiesForKeys: nil)
         } catch {
-            r.errores.append("No se pudo leer la Papelera: \(error.localizedDescription)")
+            r.errores.append("Couldn't read the Trash: \(error.localizedDescription)")
             return r
         }
         for url in elementos where url.lastPathComponent != ".DS_Store" {

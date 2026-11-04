@@ -23,3 +23,11 @@ enum EspacioAPFS {
         return min(propios, enDisco)
     }
 }
+
+/// Tamaño legible, siempre con número: "0 KB" en lugar de "Zero KB".
+public func textoTamano(_ bytes: Int64) -> String {
+    let formato = ByteCountFormatter()
+    formato.countStyle = .file
+    formato.allowsNonnumericFormatting = false
+    return formato.string(fromByteCount: bytes)
+}

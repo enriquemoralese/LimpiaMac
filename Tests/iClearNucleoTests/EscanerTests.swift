@@ -79,9 +79,8 @@ final class EscanerTests: XCTestCase {
         XCTAssertEqual(rutas(r, .basura), ["Library/Caches/com.app.ejemplo"])
         XCTAssertEqual(rutas(r, .instaladores), ["Downloads/instalador.dmg"])
         XCTAssertEqual(rutas(r, .grandes), ["Movies/video.mov"])
-        XCTAssertEqual(rutas(r, .viejos), ["Desktop/INE frente.jpg", "Documents/Escuela2021/tarea1.docx",
-                                           "Documents/Escuela2021/Parcial/tarea2.docx"])
-        XCTAssertEqual(rutas(r, .dormidos), ["Documents/Escuela2021"])
+        // La carpeta dormida va completa; sus archivos no se repiten sueltos.
+        XCTAssertEqual(rutas(r, .viejos), ["Desktop/INE frente.jpg", "Documents/Escuela2021"])
         XCTAssertEqual(rutas(r, .duplicados).count, 1)
         XCTAssertTrue(rutas(r, .duplicados).first!.hasSuffix("foto.jpg"))
 
@@ -109,7 +108,7 @@ final class EscanerTests: XCTestCase {
     }
 
     func testUnicosQuitaRepetidosYAnidados() {
-        let carpeta = Hallazgo(url: casa.appendingPathComponent("Documents/Escuela"), categoria: .dormidos,
+        let carpeta = Hallazgo(url: casa.appendingPathComponent("Documents/Escuela"), categoria: .viejos,
                                bytes: 100, fecha: Date(), tipoFecha: .modificacion, sensible: false)
         let dentro = Hallazgo(url: casa.appendingPathComponent("Documents/Escuela/a.docx"), categoria: .viejos,
                               bytes: 10, fecha: Date(), tipoFecha: .estimada, sensible: false)

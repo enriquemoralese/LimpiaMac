@@ -37,6 +37,6 @@ final class VaciarTests: XCTestCase {
         let r = Papelera.vaciar(papelera.appendingPathComponent("no-existe"))
         XCTAssertEqual(r.borrados, 0)
         XCTAssertEqual(r.errores.count, 1)
-        XCTAssertTrue(r.errores[0].hasPrefix("No se pudo leer la Papelera"))
+        XCTAssertTrue(r.errores[0].hasPrefix("Couldn't read the Trash"))
     }
 }
